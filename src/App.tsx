@@ -3,8 +3,13 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import Index from "./pages/Index";
+import Missions from "./pages/Missions";
+import MissionPlay from "./pages/MissionPlay";
+import Arena from "./pages/Arena";
+import Profile from "./pages/Profile";
+import Achievements from "./pages/Achievements";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -16,7 +21,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/missions" element={<Missions />} />
+          <Route path="/mission/:id" element={<MissionPlay />} />
+          <Route path="/arena" element={<Arena />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/achievements" element={<Achievements />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
