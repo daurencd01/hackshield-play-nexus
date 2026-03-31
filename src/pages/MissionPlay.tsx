@@ -1,32 +1,28 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { missions, missionScenario } from "@/data/mockData";
+import { missions } from "@/data/mockData";
 import ScenarioPlayer from "@/components/ScenarioPlayer";
 import GameHeader from "@/components/GameHeader";
 import { ArrowLeft, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { useUser, addXp } from "@/hooks/useUser";
 
 export default function MissionPlayPage() {
   const { t } = useTranslation() as any;
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useUser();
   const [started, setStarted] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [earnedXP, setEarnedXP] = useState(0);
 
   const mission = missions.find((m) => m.id === id) || missions[2]; // default to ransomware
+  const missionId = id || missions[2].id;
 
-  const handleComplete = async (xp: number) => {
+  // XP is awarded per-room inside ScenarioPlayer — just display final total here
+  const handleComplete = (xp: number) => {
     setEarnedXP(xp);
     setCompleted(true);
-    
-    if (user) {
-      await addXp(user.id, xp);
-    }
   };
 
   return (
@@ -67,7 +63,7 @@ export default function MissionPlayPage() {
         )}
 
         {started && !completed && (
-          <ScenarioPlayer steps={missionScenario} onComplete={handleComplete} />
+          <ScenarioPlayer missionId={missionId} onComplete={handleComplete} />
         )}
 
         {completed && (
