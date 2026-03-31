@@ -1,0 +1,62 @@
+{
+  "translation": {
+    "nav": {
+      "hq": "ШТАБ",
+      "missions": "Миссиялар",
+      "arena": "Арена",
+      "profile": "Профиль",
+      "badges": "Белгілер"
+    },
+    "header": {
+      "lvl": "ДЕҢ",
+      "xp": "XP"
+    },
+    "auth": {
+      "title": "Қауіпсіз кіру",
+      "step_1_desc": "Нексусқа кіру үшін растамаларды енгізіңіз.",
+      "step_2_desc": "Жалғастыру үшін жеке басыңызды растаңыз.",
+      "email_req": "Email қажет",
+      "email_inv": "Надұрыс Email",
+      "otp_sent": "Растау коды email-ға жіберілді.",
+      "otp_req": "Растау коды қажет",
+      "otp_len": "Код 6 саннан тұруы тиіс",
+      "auth_success": "Аутентификация сәтті! Рұқсат берілді.",
+      "auth_fail": "Қате код. Рұқсатетілмейді.",
+      "otp_new_sent": "Жаңа код жіберілді.",
+      "operator_email": "Оператор Email-і",
+      "placeholder_email": "operative@hackshield.com",
+      "btn_init": "Байланысты орнату",
+      "btn_init_loading": "Орнатылуда...",
+      "link_established": "Байланыс орнатылды",
+      "btn_change": "Өзгерту",
+      "verification_code": "Растау коды",
+      "btn_auth": "Растау",
+      "btn_auth_loading": "Тексерілуде...",
+      "btn_req_new": "Жаңа код сұрау",
+      "terminal_v": "HACKSHIELD NEXUS SECURE TERMINAL v2.4.1",
+      "encryption": "ШИФРЛАУ: AES-256 GCM",
+      "active": "БЕЛСЕНДІ"
+    },
+    "missions": {
+      "catalog": "▸ МИССИЯЛАР КАТАЛОГЫ",
+      "chapter": "{{chapter}} Тарау",
+      "all": "Барлық миссиялар",
+      "replay": "Қайта ойнау",
+      "briefing": "Брифинг",
+      "start": "🎯 МИССИЯНЫ БАСТАУ",
+      "completed": "МИССИЯ АЯҚТАЛДЫ"
+    },
+    "mission_card": {
+      "ch": "Т.{{chapter}}",
+      "difficulty": {
+        "easy": "ОҢАЙ",
+        "medium": "ОРТАША",
+        "hard": "ҚИЫН",
+        "legendary": "АҢЫЗ"
+      }
+    },
+    "common": {
+      "back": "Артқа"
+    }
+  }
+}

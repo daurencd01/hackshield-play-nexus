@@ -1,0 +1,62 @@
+{
+  "translation": {
+    "nav": {
+      "hq": "ШТАБ",
+      "missions": "Миссии",
+      "arena": "Арена",
+      "profile": "Профиль",
+      "badges": "Значки"
+    },
+    "header": {
+      "lvl": "УРВ",
+      "xp": "XP"
+    },
+    "auth": {
+      "title": "Безопасный доступ",
+      "step_1_desc": "Введите учетные данные для доступа.",
+      "step_2_desc": "Подтвердите вашу личность для продолжения.",
+      "email_req": "Требуется Email",
+      "email_inv": "Неверный формат Email",
+      "otp_sent": "Код подтверждения отправлен на ваш email.",
+      "otp_req": "Требуется код",
+      "otp_len": "Код должен состоять из 6 цифр",
+      "auth_success": "Аутентификация успешна! Доступ разрешен.",
+      "auth_fail": "Неверный код. В доступе отказано.",
+      "otp_new_sent": "Отправлен новый код.",
+      "operator_email": "Email Оператора",
+      "placeholder_email": "operative@hackshield.com",
+      "btn_init": "Инициализировать",
+      "btn_init_loading": "Инициализация...",
+      "link_established": "Соединение установлено с",
+      "btn_change": "Изменить",
+      "verification_code": "Код подтверждения",
+      "btn_auth": "Аутентифицировать",
+      "btn_auth_loading": "Проверка...",
+      "btn_req_new": "Запросить новый код",
+      "terminal_v": "HACKSHIELD NEXUS SECURE TERMINAL v2.4.1",
+      "encryption": "ШИФРОВАНИЕ: AES-256 GCM",
+      "active": "АКТИВНО"
+    },
+    "missions": {
+      "catalog": "▸ КАТАЛОГ МИССИЙ",
+      "chapter": "Глава {{chapter}}",
+      "all": "Все миссии",
+      "replay": "Переиграть",
+      "briefing": "Брифинг",
+      "start": "🎯 НАЧАТЬ МИССИЮ",
+      "completed": "МИССИЯ ЗАВЕРШЕНА"
+    },
+    "mission_card": {
+      "ch": "ГЛ.{{chapter}}",
+      "difficulty": {
+        "easy": "ЛЁГКИЙ",
+        "medium": "СРЕДНИЙ",
+        "hard": "СЛОЖНЫЙ",
+        "legendary": "ЛЕГЕНДА"
+      }
+    },
+    "common": {
+      "back": "Назад"
+    }
+  }
+}

@@ -9,7 +9,7 @@ interface ScenarioPlayerProps {
   onComplete: (totalXp: number) => void;
 }
 
-const ScenarioPlayer = ({ steps, onComplete }: ScenarioPlayerProps) => {
+export default function ScenarioPlayer({ steps, onComplete }: ScenarioPlayerProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [showConsequence, setShowConsequence] = useState(false);
@@ -18,8 +18,17 @@ const ScenarioPlayer = ({ steps, onComplete }: ScenarioPlayerProps) => {
   const step = steps[currentStepIndex];
   if (!step) return null;
 
+  // Normalize options to the choices structure to support both old and new formats
+  const normalizedChoices = step.choices || step.options?.map((opt, idx) => ({
+    id: `opt-${idx}`,
+    text: opt.text,
+    consequence: opt.explanation,
+    xpGain: opt.xpAward,
+    isOptimal: opt.isCorrect,
+  })) || [];
+
   const handleChoice = (choiceId: string) => {
-    const choice = step.choices?.find((c) => c.id === choiceId);
+    const choice = normalizedChoices.find((c) => c.id === choiceId);
     if (!choice) return;
     setSelectedChoice(choiceId);
     setShowConsequence(true);
@@ -38,18 +47,22 @@ const ScenarioPlayer = ({ steps, onComplete }: ScenarioPlayerProps) => {
 
   const getStepIcon = () => {
     switch (step.type) {
-      case "terminal": return <Terminal className="h-5 w-5 text-primary" />;
+      case "terminal":
+      case "log": return <Terminal className="h-5 w-5 text-primary" />;
       case "situation": return <AlertTriangle className="h-5 w-5 text-neon-yellow" />;
-      case "outcome": return <Award className="h-5 w-5 text-neon-purple" />;
+      case "outcome":
+      case "result": return <Award className="h-5 w-5 text-neon-purple" />;
       default: return <MessageSquare className="h-5 w-5 text-accent" />;
     }
   };
 
   const getStepBorder = () => {
     switch (step.type) {
-      case "terminal": return "border-primary/40 box-glow-green";
+      case "terminal":
+      case "log": return "border-primary/40 box-glow-green";
       case "situation": return "border-neon-yellow/40";
-      case "outcome": return "border-neon-purple/40 box-glow-purple";
+      case "outcome":
+      case "result": return "border-neon-purple/40 box-glow-purple";
       default: return "border-accent/40 box-glow-blue";
     }
   };
@@ -90,21 +103,21 @@ const ScenarioPlayer = ({ steps, onComplete }: ScenarioPlayerProps) => {
               </span>
             )}
             <span className="font-mono text-[10px] uppercase text-muted-foreground">
-              {step.type === "terminal" ? "[LOG]" : step.type === "situation" ? "[СИТУАЦИЯ]" : step.type === "outcome" ? "[РЕЗУЛЬТАТ]" : "[СВЯЗЬ]"}
+              {step.type === "terminal" || step.type === "log" ? "[LOG]" : step.type === "situation" ? "[СИТУАЦИЯ]" : step.type === "outcome" || step.type === "result" ? "[РЕЗУЛЬТАТ]" : "[СВЯЗЬ]"}
             </span>
           </div>
 
-          <p className={`text-sm leading-relaxed ${step.type === "terminal" ? "font-mono text-primary" : ""}`}>
-            {step.text}
+          <p className={`text-sm leading-relaxed ${step.type === "terminal" || step.type === "log" ? "font-mono text-primary" : ""}`}>
+            {step.text || step.content || step.question}
           </p>
 
           {/* Choices */}
-          {step.type === "situation" && step.choices && !showConsequence && (
+          {step.type === "situation" && normalizedChoices.length > 0 && !showConsequence && (
             <div className="mt-4 space-y-2">
               <p className="font-orbitron text-xs font-bold uppercase tracking-wider text-secondary">
                 Что ты сделаешь?
               </p>
-              {step.choices.map((choice) => (
+              {normalizedChoices.map((choice) => (
                 <motion.button
                   key={choice.id}
                   whileHover={{ x: 4 }}
@@ -119,13 +132,13 @@ const ScenarioPlayer = ({ steps, onComplete }: ScenarioPlayerProps) => {
           )}
 
           {/* Consequence */}
-          {showConsequence && selectedChoice && step.choices && (
+          {showConsequence && selectedChoice && normalizedChoices.length > 0 && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               className="mt-4 space-y-3"
             >
-              {step.choices
+              {normalizedChoices
                 .filter((c) => c.id === selectedChoice)
                 .map((choice) => (
                   <div key={choice.id} className={`rounded-md border p-3 ${choice.isOptimal ? "border-primary/40 bg-primary/5" : "border-destructive/40 bg-destructive/5"}`}>
@@ -156,6 +169,4 @@ const ScenarioPlayer = ({ steps, onComplete }: ScenarioPlayerProps) => {
       )}
     </div>
   );
-};
-
-export default ScenarioPlayer;
+}

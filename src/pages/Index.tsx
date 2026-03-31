@@ -7,16 +7,16 @@ import MissionCard from "@/components/MissionCard";
 import GameHeader from "@/components/GameHeader";
 import { Shield, Zap, Target, Flame } from "lucide-react";
 
-const Index = () => {
+export default function HomePage() {
   const [hoveredStat, setHoveredStat] = useState<string | null>(null);
-  const availableMissions = missions.filter((m) => m.status === "available");
-  const completedCount = missions.filter((m) => m.status === "completed").length;
+  const activeMissions = missions.filter((m) => m.status === "available");
+  const completedMissionsCount = missions.filter((m) => m.status === "completed").length;
 
   const stats = [
     { label: "УРОВЕНЬ", value: currentPlayer.level, icon: Shield, color: "text-primary" },
-    { label: "МИССИИ", value: `${completedCount}/${missions.length}`, icon: Target, color: "text-secondary" },
+    { label: "ПРОГРЕСС", value: `${completedMissionsCount}/${missions.length}`, icon: Target, color: "text-secondary" },
     { label: "СЕРИЯ", value: `${currentPlayer.streak}🔥`, icon: Flame, color: "text-neon-pink" },
-    { label: "РАНГ", value: currentPlayer.rank, icon: Zap, color: "text-neon-yellow" },
+    { label: "РЕЙТИНГ", value: currentPlayer.rank, icon: Zap, color: "text-neon-yellow" },
   ];
 
   return (
@@ -24,35 +24,31 @@ const Index = () => {
       <div className="scanline fixed inset-0 z-50 pointer-events-none" />
       <GameHeader />
       <main className="mx-auto max-w-5xl px-4 py-8">
-        {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 text-center"
+          className="mb-10 text-center"
         >
-          <h1 className="font-orbitron text-3xl font-black text-primary text-glow-green sm:text-5xl">
+          <h1 className="font-orbitron text-4xl font-black text-primary text-glow-green md:text-6xl tracking-wider">
             HACK<span className="text-secondary text-glow-purple">SHIELD</span>
           </h1>
-          <p className="mt-2 font-mono text-sm text-muted-foreground">
+          <p className="mt-3 font-mono text-sm text-muted-foreground tracking-widest opacity-80">
             [ CYBERSECURITY TRAINING PLATFORM ]
           </p>
 
-          {/* XP Bar */}
-          <div className="mx-auto mt-6 max-w-md">
-            <div className="mb-1 flex justify-between font-mono text-xs text-muted-foreground">
-              <span>Агент: <span className="text-primary">{currentPlayer.username}</span></span>
+          <div className="mx-auto mt-8 max-w-md bg-black/20 p-4 rounded-xl border border-primary/20 backdrop-blur-sm">
+            <div className="mb-2 flex justify-between font-mono text-xs text-muted-foreground uppercase">
+              <span>Оперативник: <strong className="text-primary">{currentPlayer.username}</strong></span>
               <span>{currentPlayer.xp} / {currentPlayer.xpToNext} XP</span>
             </div>
-            <Progress value={(currentPlayer.xp / currentPlayer.xpToNext) * 100} className="h-2" />
+            <Progress value={(currentPlayer.xp / currentPlayer.xpToNext) * 100} className="h-2.5 bg-background shadow-inner" />
           </div>
         </motion.div>
-
-        {/* Stats */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4"
+          className="mb-12 grid grid-cols-2 gap-4 md:grid-cols-4"
         >
           {stats.map((stat) => {
             const Icon = stat.icon;
@@ -61,61 +57,62 @@ const Index = () => {
                 key={stat.label}
                 onMouseEnter={() => setHoveredStat(stat.label)}
                 onMouseLeave={() => setHoveredStat(null)}
-                className={`flex flex-col items-center rounded-lg border border-border bg-card/50 p-3 transition-all ${
-                  hoveredStat === stat.label ? "border-primary/50 box-glow-green" : ""
+                className={`relative overflow-hidden flex flex-col items-center rounded-xl border border-border bg-card/40 p-5 backdrop-blur-md transition-all duration-300 ${
+                  hoveredStat === stat.label ? "border-primary/60 box-glow-green transform -translate-y-1" : "hover:border-primary/30"
                 }`}
               >
-                <Icon className={`mb-1 h-5 w-5 ${stat.color}`} />
-                <span className="font-mono text-[10px] text-muted-foreground">{stat.label}</span>
-                <span className={`font-orbitron text-sm font-bold ${stat.color}`}>{stat.value}</span>
+                <div className={`absolute top-0 w-full h-1 opacity-20 ${hoveredStat === stat.label ? "bg-primary" : "bg-transparent"}`} />
+                <Icon className={`mb-2 h-6 w-6 ${stat.color} transition-transform duration-300 ${hoveredStat === stat.label ? "scale-110" : ""}`} />
+                <span className="font-mono text-[11px] text-muted-foreground tracking-wider mb-1">{stat.label}</span>
+                <span className={`font-orbitron text-lg font-bold ${stat.color}`}>{stat.value}</span>
               </div>
             );
           })}
         </motion.div>
-
-        {/* Available missions */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-orbitron text-lg font-bold text-secondary text-glow-purple">
-              ▸ ДОСТУПНЫЕ МИССИИ
+          <div className="mb-6 flex items-end justify-between border-b border-border/50 pb-2">
+            <h2 className="font-orbitron text-xl font-bold text-secondary text-glow-purple flex items-center gap-2">
+              <span className="inline-block w-2 h-2 bg-secondary rounded-full animate-pulse" />
+              АКТИВНЫЕ ЗАДАНИЯ
             </h2>
-            <Link to="/missions" className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors">
-              Все миссии →
+            <Link to="/missions" className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">
+              База данных <span className="group-hover:translate-x-1 transition-transform">→</span>
             </Link>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {availableMissions.map((mission) => (
-              <Link key={mission.id} to={`/mission/${mission.id}`}>
-                <MissionCard mission={mission} />
+          <div className="grid gap-4 md:grid-cols-2">
+            {activeMissions.map((mission) => (
+              <Link key={mission.id} to={`/mission/${mission.id}`} className="block group">
+                <div className="transition-transform duration-300 group-hover:-translate-y-1">
+                  <MissionCard mission={mission} />
+                </div>
               </Link>
             ))}
           </div>
         </motion.section>
-
-        {/* CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-8 text-center"
+          className="mt-12 text-center"
         >
           <Link to="/missions">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="rounded-lg border border-primary bg-primary/10 px-8 py-3 font-orbitron text-sm font-bold uppercase tracking-widest text-primary transition-all hover:bg-primary/20 box-glow-green"
+              className="relative overflow-hidden rounded-lg border border-primary bg-primary/10 px-10 py-4 font-orbitron text-sm font-bold uppercase tracking-widest text-primary transition-all hover:bg-primary/20 box-glow-green group"
             >
-              ⚡ START MISSION
+              <span className="absolute inset-0 bg-primary/20 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-300 ease-in-out" />
+              <span className="relative flex items-center gap-2">
+                <Zap className="h-4 w-4" /> НАЧАТЬ ПОДГОТОВКУ
+              </span>
             </motion.button>
           </Link>
         </motion.div>
       </main>
     </div>
   );
-};
-
-export default Index;
+}

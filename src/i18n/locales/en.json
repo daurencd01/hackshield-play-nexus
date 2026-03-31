@@ -1,0 +1,62 @@
+{
+  "translation": {
+    "nav": {
+      "hq": "HQ",
+      "missions": "Missions",
+      "arena": "Arena",
+      "profile": "Profile",
+      "badges": "Badges"
+    },
+    "header": {
+      "lvl": "LVL",
+      "xp": "XP"
+    },
+    "auth": {
+      "title": "Secure Access",
+      "step_1_desc": "Enter your credentials to access the nexus.",
+      "step_2_desc": "Verify your identity to proceed.",
+      "email_req": "Email is required",
+      "email_inv": "Invalid email format",
+      "otp_sent": "Verification code sent to your email.",
+      "otp_req": "Verification code is required",
+      "otp_len": "Code must be exactly 6 digits",
+      "auth_success": "Authentication successful! Access granted.",
+      "auth_fail": "Invalid verification code. Access denied.",
+      "otp_new_sent": "A new verification code has been sent.",
+      "operator_email": "Operator Email",
+      "placeholder_email": "operative@hackshield.com",
+      "btn_init": "Initialize Link",
+      "btn_init_loading": "Initializing...",
+      "link_established": "Link established with",
+      "btn_change": "Change",
+      "verification_code": "Verification Code",
+      "btn_auth": "Authenticate",
+      "btn_auth_loading": "Verifying...",
+      "btn_req_new": "Request New Code",
+      "terminal_v": "HACKSHIELD NEXUS SECURE TERMINAL v2.4.1",
+      "encryption": "ENCRYPTION: AES-256 GCM",
+      "active": "ACTIVE"
+    },
+    "missions": {
+      "catalog": "▸ MISSIONS CATALOG",
+      "chapter": "Chapter {{chapter}}",
+      "all": "All missions",
+      "replay": "Replay",
+      "briefing": "Briefing",
+      "start": "🎯 START MISSION",
+      "completed": "MISSION COMPLETED"
+    },
+    "mission_card": {
+      "ch": "CH.{{chapter}}",
+      "difficulty": {
+        "easy": "EASY",
+        "medium": "MEDIUM",
+        "hard": "HARD",
+        "legendary": "LEGENDARY"
+      }
+    },
+    "common": {
+      "back": "Back"
+    }
+  }
+}

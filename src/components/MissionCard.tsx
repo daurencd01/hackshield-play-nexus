@@ -1,6 +1,7 @@
 import { Mission } from "@/data/mockData";
 import { Lock, CheckCircle, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 const difficultyColors: Record<string, string> = {
   easy: "text-primary border-primary/40",
@@ -9,19 +10,13 @@ const difficultyColors: Record<string, string> = {
   legendary: "text-neon-purple border-neon-purple/40",
 };
 
-const difficultyLabels: Record<string, string> = {
-  easy: "ЛЁГКИЙ",
-  medium: "СРЕДНИЙ",
-  hard: "СЛОЖНЫЙ",
-  legendary: "ЛЕГЕНДА",
-};
-
 interface MissionCardProps {
   mission: Mission;
   onClick?: () => void;
 }
 
-const MissionCard = ({ mission, onClick }: MissionCardProps) => {
+export default function MissionCard({ mission, onClick }: MissionCardProps) {
+  const { t } = useTranslation() as any;
   const isLocked = mission.status === "locked";
   const isCompleted = mission.status === "completed";
 
@@ -40,7 +35,7 @@ const MissionCard = ({ mission, onClick }: MissionCardProps) => {
     >
       {/* Chapter badge */}
       <div className="absolute right-3 top-3 font-mono text-xs text-muted-foreground">
-        CH.{mission.chapter}
+        {t("mission_card.ch", { chapter: mission.chapter })}
       </div>
 
       <div className="flex items-start gap-3">
@@ -57,7 +52,7 @@ const MissionCard = ({ mission, onClick }: MissionCardProps) => {
           </p>
           <div className="mt-2 flex items-center gap-3">
             <span className={`rounded border px-2 py-0.5 font-mono text-[10px] uppercase ${difficultyColors[mission.difficulty]}`}>
-              {difficultyLabels[mission.difficulty]}
+              {t(`mission_card.difficulty.${mission.difficulty}` as any)}
             </span>
             <span className="font-mono text-xs text-neon-yellow">+{mission.xpReward} XP</span>
           </div>
@@ -68,6 +63,4 @@ const MissionCard = ({ mission, onClick }: MissionCardProps) => {
       </div>
     </motion.div>
   );
-};
-
-export default MissionCard;
+}
