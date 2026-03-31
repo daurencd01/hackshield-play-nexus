@@ -10,7 +10,7 @@ const rarityStyles: Record<string, { border: string; bg: string; label: string; 
   legendary: { border: "border-neon-yellow/40", bg: "bg-neon-yellow/5", label: "ЛЕГЕНДАРНАЯ", text: "text-neon-yellow" },
 };
 
-const Achievements = () => {
+export default function AchievementsPage() {
   const unlocked = achievements.filter((a) => a.unlocked).length;
 
   return (
@@ -69,6 +69,4 @@ const Achievements = () => {
       </main>
     </div>
   );
-};
-
-export default Achievements;
+}

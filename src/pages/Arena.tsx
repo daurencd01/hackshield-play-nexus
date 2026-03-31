@@ -4,7 +4,7 @@ import { leaderboard, friends } from "@/data/mockData";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import GameHeader from "@/components/GameHeader";
 
-const Arena = () => {
+export default function ArenaPage() {
   const [tab, setTab] = useState<"global" | "friends">("global");
 
   return (
@@ -66,6 +66,4 @@ const Arena = () => {
       </main>
     </div>
   );
-};
-
-export default Arena;
+}

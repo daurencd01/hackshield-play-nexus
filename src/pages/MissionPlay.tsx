@@ -6,19 +6,27 @@ import ScenarioPlayer from "@/components/ScenarioPlayer";
 import GameHeader from "@/components/GameHeader";
 import { ArrowLeft, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
+import { useUser, addXp } from "@/hooks/useUser";
 
-const MissionPlay = () => {
+export default function MissionPlayPage() {
+  const { t } = useTranslation() as any;
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useUser();
   const [started, setStarted] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [earnedXP, setEarnedXP] = useState(0);
 
   const mission = missions.find((m) => m.id === id) || missions[2]; // default to ransomware
 
-  const handleComplete = (xp: number) => {
+  const handleComplete = async (xp: number) => {
     setEarnedXP(xp);
     setCompleted(true);
+    
+    if (user) {
+      await addXp(user.id, xp);
+    }
   };
 
   return (
@@ -33,17 +41,17 @@ const MissionPlay = () => {
             className="mx-auto max-w-lg text-center"
           >
             <button onClick={() => navigate(-1)} className="mb-6 flex items-center gap-1 font-mono text-xs text-muted-foreground hover:text-primary transition-colors">
-              <ArrowLeft className="h-3 w-3" /> Назад
+              <ArrowLeft className="h-3 w-3" /> {t("common.back")}
             </button>
             <div className="mb-4 text-5xl">{mission.icon}</div>
             <h1 className="font-orbitron text-2xl font-bold text-primary text-glow-green">
               {mission.title}
             </h1>
             <p className="mt-2 font-mono text-xs text-muted-foreground uppercase">
-              Глава {mission.chapter} · +{mission.xpReward} XP
+              {t("missions.chapter", { chapter: mission.chapter })} · +{mission.xpReward} XP
             </p>
             <div className="mt-6 rounded-lg border border-border bg-card/50 p-4 text-left">
-              <p className="font-orbitron text-xs font-bold text-secondary uppercase tracking-wider mb-2">Брифинг</p>
+              <p className="font-orbitron text-xs font-bold text-secondary uppercase tracking-wider mb-2">{t("missions.briefing")}</p>
               <p className="font-mono text-sm text-muted-foreground">{mission.briefing}</p>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">{mission.description}</p>
@@ -53,7 +61,7 @@ const MissionPlay = () => {
               onClick={() => setStarted(true)}
               className="mt-6 rounded-lg border border-secondary bg-secondary/10 px-8 py-3 font-orbitron text-sm font-bold uppercase tracking-widest text-secondary transition-all hover:bg-secondary/20 box-glow-purple"
             >
-              🎯 НАЧАТЬ МИССИЮ
+              {t("missions.start")}
             </motion.button>
           </motion.div>
         )}
@@ -70,19 +78,19 @@ const MissionPlay = () => {
           >
             <Award className="mx-auto h-16 w-16 text-neon-yellow" />
             <h1 className="mt-4 font-orbitron text-2xl font-bold text-primary text-glow-green">
-              МИССИЯ ЗАВЕРШЕНА
+              {t("missions.completed")}
             </h1>
             <p className="mt-2 font-mono text-lg text-neon-yellow">+{earnedXP} XP</p>
             <p className="mt-1 font-mono text-sm text-muted-foreground">{mission.title}</p>
             <div className="mt-6 flex justify-center gap-3">
               <Button variant="outline" onClick={() => navigate("/missions")} className="font-orbitron text-xs uppercase">
-                Все миссии
+                {t("missions.all")}
               </Button>
               <Button
                 onClick={() => { setStarted(false); setCompleted(false); setEarnedXP(0); }}
                 className="font-orbitron text-xs uppercase bg-secondary text-secondary-foreground hover:bg-secondary/80"
               >
-                Переиграть
+                {t("missions.replay")}
               </Button>
             </div>
           </motion.div>
@@ -90,6 +98,4 @@ const MissionPlay = () => {
       </main>
     </div>
   );
-};
-
-export default MissionPlay;
+}
