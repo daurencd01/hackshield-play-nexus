@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Edit3, Save, X, Camera, Shield, Zap, Globe, MessageCircle,
-  Instagram, Calendar, Mail, Copy, Check, Loader2,
+  User, Edit3, Save, X, Camera, Shield, Globe, MessageCircle,
+  Calendar, Mail, Copy, Check, Loader2,
 } from "lucide-react";
+import { FaInstagram } from "react-icons/fa";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import GameHeader from "@/components/GameHeader";
@@ -160,12 +161,20 @@ function EditForm({ user, onSave, onCancel }: EditFormProps) {
         </p>
       )}
 
-      {[
-        { label: "Имя пользователя", key: "username" as const, icon: User },
-        { label: "Полное имя", key: "full_name" as const, icon: Shield },
-        { label: "Telegram", key: "telegram" as const, icon: MessageCircle, prefix: "@" },
-        { label: "Instagram", key: "instagram" as const, icon: Instagram, prefix: "@" },
-      ].map(({ label, key, icon: Icon, prefix }) => (
+      {(
+        [
+          { label: "Имя пользователя", key: "username", icon: User },
+          { label: "Полное имя",       key: "full_name", icon: Shield },
+          { label: "Telegram",         key: "telegram",  icon: MessageCircle, prefix: "@" },
+          { label: "Instagram",        key: "instagram", icon: FaInstagram,   prefix: "@" },
+        ] as Array<{
+          label: string;
+          key: keyof typeof form;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          icon: React.ComponentType<any>;
+          prefix?: string;
+        }>
+      ).map(({ label, key, icon: Icon, prefix }) => (
         <div key={key} className="space-y-1">
           <label className="font-mono text-[10px] uppercase text-muted-foreground">{label}</label>
           <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 focus-within:border-secondary transition-colors">
