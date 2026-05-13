@@ -33,7 +33,8 @@ export const GameProgressSchema = z.object({
   sessionXp: z.number().int().min(0).default(0),
   health: z.number().min(0).max(100).default(100),
   flags: z.record(z.string(), z.boolean()).default({}),
-  hasKeyCard: z.boolean().default(false)
+  hasKeyCard: z.boolean().default(false),
+  completed: z.boolean().default(false)
 });
 
 export type GameProgress = z.infer<typeof GameProgressSchema>;
