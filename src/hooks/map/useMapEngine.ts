@@ -37,7 +37,7 @@ export function useMapEngine(missionId: string, userId: string, onComplete: (tot
         if (progressData) {
           resume = progressData.completed
             ? fetched.length 
-            : Math.min(progressData.currentRoomIndex ?? progressData.current_room ?? 0, fetched.length - 1);
+            : Math.min(progressData.currentRoomIndex ?? 0, fetched.length - 1);
         }
 
         setRooms(fetched);
