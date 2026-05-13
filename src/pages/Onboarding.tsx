@@ -12,15 +12,15 @@ const UserIcon = () => (
 
 const LoaderIcon = () => (
   <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
 
 const LogoutIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-    <polyline points="16 17 21 12 16 7"></polyline>
-    <line x1="21" y1="12" x2="9" y2="12"></line>
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
   </svg>
 );
 
@@ -37,33 +37,29 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const init = async () => {
-      // Step 1: Check session first
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          navigate('/auth');
+          return;
+        }
+
+        if (session.user.email) {
+          setEmail(session.user.email);
+        }
+
+        // Check if profile exists
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (profile?.username) {
+          navigate('/');
+        }
+      } catch (e) {
         navigate('/auth');
-        return;
-      }
-
-      // Step 2: Server-side verify
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) {
-        navigate('/auth');
-        return;
-      }
-
-      if (user.email) {
-        setEmail(user.email);
-      }
-
-      // Step 3: If profile already complete, skip onboarding
-      const { data: profile } = await supabase
-        .from('users')
-        .select('username')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (profile?.username) {
-        navigate('/');
       }
     };
 
@@ -94,37 +90,35 @@ export default function OnboardingPage() {
     setIsLoading(true);
 
     try {
-      // Verify session before any DB write
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!session?.user) {
         navigate('/auth');
         return;
       }
 
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        navigate('/auth');
-        return;
-      }
-
-      const { error: upsertError } = await supabase.from('users').upsert({
-        id: user.id,
-        email: user.email,
+      const newProfile = {
+        id: session.user.id,
         username: normalizedUsername,
         full_name: fullName.trim() || null,
-        role: role,
-      }, { onConflict: 'id' });
+        role: role.trim(),
+        email: session.user.email,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert(newProfile);
 
       if (upsertError) {
         if (upsertError.code === '23505') {
-          setError(t('onboarding.username_taken') || 'Username is already taken. Please choose another.');
+          setError('Username already taken. Please choose another.');
         } else {
-          setError(upsertError.message || 'Error saving profile');
+          setError(upsertError.message || 'An error occurred while saving profile.');
         }
         return;
       }
 
-      navigate('/profile');
+      navigate('/');
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
     } finally {

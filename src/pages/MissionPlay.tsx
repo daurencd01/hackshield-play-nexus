@@ -4,9 +4,12 @@ import { motion } from "framer-motion";
 import { missions } from "@/data/mockData";
 import ScenarioPlayer from "@/components/ScenarioPlayer";
 import GameHeader from "@/components/GameHeader";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ArrowLeft, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+
+import NotFound from "./NotFound";
 
 export default function MissionPlayPage() {
   const { t } = useTranslation() as any;
@@ -16,8 +19,12 @@ export default function MissionPlayPage() {
   const [completed, setCompleted] = useState(false);
   const [earnedXP, setEarnedXP] = useState(0);
 
-  const mission = missions.find((m) => m.id === id) || missions[2]; // default to ransomware
-  const missionId = id || missions[2].id;
+  const mission = missions.find((m) => m.id === id);
+  if (!mission) {
+    return <NotFound />;
+  }
+
+  const missionId = mission.id;
 
   // XP is awarded per-room inside ScenarioPlayer — just display final total here
   const handleComplete = (xp: number) => {
@@ -63,7 +70,9 @@ export default function MissionPlayPage() {
         )}
 
         {started && !completed && (
-          <ScenarioPlayer missionId={missionId} onComplete={handleComplete} />
+          <ErrorBoundary>
+            <ScenarioPlayer missionId={missionId} onComplete={handleComplete} />
+          </ErrorBoundary>
         )}
 
         {completed && (

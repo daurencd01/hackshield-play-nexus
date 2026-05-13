@@ -75,26 +75,47 @@ export const RANKS = [
   { label: "Legend",   minXp: 6000, color: "text-neon-pink" },
 ] as const;
 
+// Memoization caches
+const getRankCache = new Map<number, typeof RANKS[number]>();
+const getNextRankCache = new Map<number, typeof RANKS[number] | null>();
+const getLevelCache = new Map<number, number>();
+const getLevelProgressCache = new Map<number, number>();
+
 export function getRank(xp: number) {
+  if (getRankCache.has(xp)) return getRankCache.get(xp)!;
   for (let i = RANKS.length - 1; i >= 0; i--) {
-    if (xp >= RANKS[i].minXp) return RANKS[i];
+    if (xp >= RANKS[i].minXp) {
+      getRankCache.set(xp, RANKS[i]);
+      return RANKS[i];
+    }
   }
   return RANKS[0];
 }
 
 export function getNextRank(xp: number) {
+  if (getNextRankCache.has(xp)) return getNextRankCache.get(xp) ?? null;
   for (const rank of RANKS) {
-    if (xp < rank.minXp) return rank;
+    if (xp < rank.minXp) {
+      getNextRankCache.set(xp, rank);
+      return rank;
+    }
   }
+  getNextRankCache.set(xp, null);
   return null; // max rank
 }
 
 /** Level derived from XP (every 1000 XP = 1 level) */
 export function getLevel(xp: number) {
-  return Math.floor(xp / 1000) + 1;
+  if (getLevelCache.has(xp)) return getLevelCache.get(xp)!;
+  const level = Math.floor(xp / 1000) + 1;
+  getLevelCache.set(xp, level);
+  return level;
 }
 
 /** Progress % to next level (0-100) */
 export function getLevelProgress(xp: number) {
-  return (xp % 1000) / 10;
+  if (getLevelProgressCache.has(xp)) return getLevelProgressCache.get(xp)!;
+  const progress = (xp % 1000) / 10;
+  getLevelProgressCache.set(xp, progress);
+  return progress;
 }

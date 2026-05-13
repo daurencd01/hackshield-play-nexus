@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Zap, Users, Globe, RefreshCw } from "lucide-react";
 import GameHeader from "@/components/GameHeader";
-import { supabase } from "@/lib/supabase";
 import { useUser } from "@/hooks/useUser";
 import {
   PageLoader, ErrorState, EmptyState, Skeleton,
@@ -169,24 +168,42 @@ export default function ArenaPage() {
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [globalList, setGlobalList] = useState<LeaderboardUser[]>([]);
 
-  const fetchLeaderboard = useCallback(async () => {
+const fetchLeaderboard = useCallback(async () => {
     setPhase("loading");
 
-    const { data, error } = await supabase
-      .from("users")
-      .select("id, username, xp, avatar_url")
-      .order("xp", { ascending: false })
-      .limit(50);
+    try {
+      // Mock leaderboard
+      await new Promise(r => setTimeout(r, 600));
+      
+      const mockData = [
+        { id: "1", username: "cyber_ninja", xp: 12500, avatar_url: null },
+        { id: "2", username: "neo_matrix", xp: 11200, avatar_url: null },
+        { id: "3", username: "hacker_pro", xp: 9800, avatar_url: null },
+        { id: "4", username: "script_kiddie", xp: 4500, avatar_url: null },
+        { id: "5", username: "anonymous", xp: 3200, avatar_url: null }
+      ];
+      
+      // If user is logged in, insert them if they aren't there
+      if (currentUser) {
+        const userInList = mockData.find(u => u.id === currentUser.id);
+        if (!userInList) {
+          mockData.push({
+            id: currentUser.id,
+            username: currentUser.username || "You",
+            xp: currentUser.xp,
+            avatar_url: currentUser.avatar_url || null
+          });
+        }
+      }
+      
+      mockData.sort((a, b) => b.xp - a.xp);
 
-    if (error) {
-      console.error("[Arena] Failed to fetch leaderboard:", error.message);
+      setGlobalList(mockData as LeaderboardUser[]);
+      setPhase("ready");
+    } catch (error) {
       setPhase("error");
-      return;
     }
-
-    setGlobalList((data ?? []) as LeaderboardUser[]);
-    setPhase("ready");
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => { fetchLeaderboard(); }, [fetchLeaderboard]);
 

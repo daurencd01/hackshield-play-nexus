@@ -275,13 +275,37 @@ export default function ProfilePage() {
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     if (authError || !authUser) { navigate("/auth"); return; }
 
-    const { data, error } = await supabase
-      .from("users")
+    let { data, error } = await supabase
+      .from("profiles")
       .select("id, email, username, full_name, role, xp, created_at, avatar_url, telegram, instagram")
       .eq("id", authUser.id)
       .maybeSingle();
 
     if (error) { console.error("[Profile] DB error:", error.message); setPhase("error"); return; }
+
+    if (!data) {
+      console.log('[Profile] Auto-creating missing profile for:', authUser.id);
+      const newProfile = {
+        id: authUser.id,
+        username: authUser.email?.split('@')[0] || 'user',
+        full_name: '',
+        role: 'student',
+        email: authUser.email,
+        updated_at: new Date().toISOString()
+      };
+      const { data: created, error: createError } = await supabase
+        .from('profiles')
+        .upsert(newProfile)
+        .select()
+        .single();
+        
+      if (createError) {
+        console.error('[Profile] Failed to create profile:', createError.message);
+        setPhase("error");
+        return;
+      }
+      data = created;
+    }
 
     setUser(data as UserProfile);
     setPhase("ready");
@@ -300,7 +324,7 @@ export default function ProfilePage() {
   const handleSave = async (updates: Partial<UserProfile>) => {
     if (!user) return;
     const { error } = await supabase
-      .from("users")
+      .from("profiles")
       .update(updates)
       .eq("id", user.id);
 
