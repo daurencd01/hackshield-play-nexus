@@ -1,45 +1,4 @@
-export interface Mission {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: "easy" | "medium" | "hard" | "legendary";
-  xpReward: number;
-  status: "locked" | "available" | "in-progress" | "completed";
-  chapter: number;
-  icon: string;
-  briefing: string;
-}
-
-export interface ScenarioStep {
-  id: string;
-  type: "narrative" | "situation" | "terminal" | "outcome" | "dialogue" | "log" | "result";
-  text?: string;
-  content?: string;
-  speaker?: string;
-  question?: string;
-  choices?: {
-    id: string;
-    text: string;
-    consequence: string;
-    xpGain: number;
-    isOptimal: boolean;
-  }[];
-  options?: {
-    text: string;
-    isCorrect: boolean;
-    explanation: string;
-    xpAward: number;
-  }[];
-}
-
-export interface Scenario {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: "easy" | "medium" | "hard" | "legendary";
-  category: "phishing" | "network" | "password" | "social engineering" | "device";
-  steps: ScenarioStep[];
-}
+import { Mission, ScenarioStep, Scenario } from "@/types/scenario";
 
 export interface Player {
   id: string;
@@ -156,6 +115,25 @@ export const missions: Mission[] = [
     icon: "👻",
     briefing: "Совершенно секретно. Только для агентов уровня 10+.",
   },
+];
+
+export const mockScenarioRooms = [
+  {
+    id: "sr1",
+    mission_id: "m1",
+    title: "Firewall Gateway",
+    task: "You need to bypass the external firewall to access the secure subnetwork. Find the open port.\nHint: Try 'scan 10.0.0.1'",
+    correct_answer: "scan 10.0.0.1",
+    order_index: 0
+  },
+  {
+    id: "sr2",
+    mission_id: "m1",
+    title: "Access Control",
+    task: "The subnetwork is password protected. You found a hash: 'admin:12345'.\nHint: What's the password?",
+    correct_answer: "12345",
+    order_index: 1
+  }
 ];
 
 export const missionScenario: ScenarioStep[] = [

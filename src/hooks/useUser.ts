@@ -18,16 +18,40 @@ export function useUser() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
-    const { data, error } = await supabase
-      .from('users')
+  const fetchProfile = async (authUser: any): Promise<UserProfile | null> => {
+    let { data, error } = await supabase
+      .from('profiles')
       .select('id, email, username, full_name, role, xp, created_at, avatar_url, telegram, instagram')
-      .eq('id', userId)
+      .eq('id', authUser.id)
       .maybeSingle(); // safe: returns null instead of 406 when no row exists
 
     if (error) {
       console.warn('[useUser] Profile fetch error:', error.message);
       return null;
+    }
+
+    if (!data) {
+      console.log('[useUser] Profile missing, creating new one for:', authUser.id);
+      const newProfile = {
+        id: authUser.id,
+        username: authUser.email?.split('@')[0] || 'user',
+        full_name: '',
+        role: 'student',
+        email: authUser.email,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data: created, error: createError } = await supabase
+        .from('profiles')
+        .upsert(newProfile)
+        .select('id, email, username, full_name, role, xp, created_at, avatar_url, telegram, instagram')
+        .single();
+        
+      if (createError) {
+        console.error('[useUser] Failed to auto-create profile:', createError.message);
+        return null;
+      }
+      data = created;
     }
 
     return data as UserProfile | null;
@@ -53,7 +77,7 @@ export function useUser() {
       }
 
       // Step 3: Fetch profile — may be null if onboarding not complete
-      const profile = await fetchProfile(authUser.id);
+      const profile = await fetchProfile(authUser);
       if (mounted) {
         setUser(profile);
         setLoading(false);
@@ -75,7 +99,7 @@ export function useUser() {
       if (event === 'SIGNED_IN' && session?.user) {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         if (authUser && mounted) {
-          const profile = await fetchProfile(authUser.id);
+          const profile = await fetchProfile(authUser);
           setUser(profile);
         }
       }
@@ -98,7 +122,7 @@ export async function addXp(userId: string, amount: number): Promise<number | nu
   }
 
   const { data: current } = await supabase
-    .from('users')
+    .from('profiles')
     .select('xp')
     .eq('id', userId)
     .maybeSingle();
@@ -108,7 +132,7 @@ export async function addXp(userId: string, amount: number): Promise<number | nu
   const newXp = (current.xp || 0) + amount;
 
   const { data: updated } = await supabase
-    .from('users')
+    .from('profiles')
     .update({ xp: newXp })
     .eq('id', userId)
     .select('xp')

@@ -57,7 +57,7 @@ export async function uploadAvatar(
 
   // --- Persist URL into DB ---
   const { error: dbError } = await supabase
-    .from('users')
+    .from('profiles')
     .update({ avatar_url: publicUrl })
     .eq('id', userId);
 

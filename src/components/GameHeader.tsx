@@ -1,12 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { currentPlayer } from "@/data/mockData";
 import { Progress } from "@/components/ui/progress";
-import { Shield, Swords, Users, User, Trophy } from "lucide-react";
+import { Shield, Swords, Users, User, Trophy, Gamepad2 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useTranslation } from "react-i18next";
 import { useUser } from "@/hooks/useUser";
-import { supabase } from "@/lib/supabase";
+import { dataService } from "@/lib/dataService";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import { LogOut, Settings } from "lucide-react";
 const navItems = [
   { path: "/", key: "nav.hq", icon: Shield },
   { path: "/missions", key: "nav.missions", icon: Swords },
+  { path: "/2d-game", key: "nav.2d_game", icon: Gamepad2 },
   { path: "/arena", key: "nav.arena", icon: Users },
   { path: "/profile", key: "nav.profile", icon: User },
   { path: "/achievements", key: "nav.badges", icon: Trophy },
@@ -33,7 +34,7 @@ export default function GameHeader() {
   const { user } = useUser();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await dataService.signOut();
     navigate("/auth");
   };
 

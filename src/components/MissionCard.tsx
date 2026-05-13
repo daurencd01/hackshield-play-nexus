@@ -1,4 +1,4 @@
-import { Mission } from "@/data/mockData";
+import { Mission, ScenarioStep, Scenario } from "@/types/scenario";
 import { Lock, CheckCircle, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";

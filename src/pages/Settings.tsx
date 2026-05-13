@@ -52,11 +52,24 @@ export default function SettingsPage() {
       setUserId(user.id);
 
       // Step 3: Fetch profile from DB
-      const { data, error: dbError } = await supabase
-        .from('users')
+      let { data, error: dbError } = await supabase
+        .from('profiles')
         .select('username, full_name, role, avatar_url, telegram, instagram')
         .eq('id', user.id)
         .maybeSingle();
+
+      if (!dbError && !data) {
+        const newProfile = {
+          id: user.id,
+          username: user.email?.split('@')[0] || 'user',
+          full_name: '',
+          role: 'student',
+          email: user.email,
+          updated_at: new Date().toISOString()
+        };
+        const { data: created } = await supabase.from('profiles').upsert(newProfile).select().single();
+        data = created;
+      }
 
       if (!dbError && data) {
         setUsername(data.username || "");
@@ -129,7 +142,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const { error: updateError } = await supabase
-        .from('users')
+        .from('profiles')
         .update({
           username: normalizedUsername,
           full_name: fullName.trim() || null,

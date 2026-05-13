@@ -10,6 +10,7 @@ import HomePage from "./pages/Index";
 import MissionsPage from "./pages/Missions";
 import MissionPlayPage from "./pages/MissionPlay";
 import ArenaPage from "./pages/Arena";
+import Game2DPage from "./pages/Game2D";
 import ProfilePage from "./pages/Profile";
 import AchievementsPage from "./pages/Achievements";
 import NotFound from "./pages/NotFound";
@@ -91,6 +92,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ArenaPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/2d-game" 
+            element={
+              <ProtectedRoute>
+                <Game2DPage />
               </ProtectedRoute>
             } 
           />

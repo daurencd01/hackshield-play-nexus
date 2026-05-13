@@ -5,7 +5,7 @@ import {
   RotateCcw, Loader2, X, Lock, Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import { dataService } from "@/lib/dataService";
 import { addXp } from "@/hooks/useUser";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -94,10 +94,7 @@ function RoomModal({ room, roomNumber, totalRooms, userId, isLast, onCorrect, on
       // Fire-and-forget DB ops
       await Promise.allSettled([
         addXp(userId, XP_PER_ROOM),
-        supabase.from("user_progress").upsert(
-          { user_id: userId, mission_id: room.mission_id, current_room: roomNumber, completed: isLast },
-          { onConflict: "user_id,mission_id" }
-        ),
+        dataService.saveUserProgress(userId, room.mission_id, roomNumber, isLast)
       ]);
       setXpFlash(true);
       setAnswerState("correct");
@@ -408,24 +405,15 @@ export default function ScenarioMap({ missionId, userId, onComplete }: ScenarioM
     const load = async () => {
       setPhase("loading");
 
-      const [{ data: roomData, error: roomErr }, { data: progressData }] = await Promise.all([
-        supabase
-          .from("scenario_rooms")
-          .select("id, mission_id, title, task, correct_answer, order_index")
-          .eq("mission_id", missionId)
-          .order("order_index", { ascending: true }),
-        supabase
-          .from("user_progress")
-          .select("current_room, completed")
-          .eq("user_id", userId)
-          .eq("mission_id", missionId)
-          .maybeSingle(),
+      const [roomData, progressData] = await Promise.all([
+        dataService.getScenarioRooms(missionId),
+        dataService.getUserProgress(userId, missionId)
       ]);
 
       if (cancelled) return;
 
-      if (roomErr || !roomData?.length) {
-        setErrorMsg(roomErr?.message ?? "Задания не найдены.");
+      if (!roomData?.length) {
+        setErrorMsg("Задания не найдены.");
         setPhase("error");
         return;
       }
