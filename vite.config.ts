@@ -183,15 +183,6 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('node_modules')) {
             return 'vendor';
           }
-          if (id.includes('/src/components/game/') || id.includes('/src/pages/Game2D')) {
-            return 'game-2d';
-          }
-          if (id.includes('/src/components/chat/') || id.includes('/src/services/chatService')) {
-            return 'chat';
-          }
-          if (id.includes('/src/components/arena/') || id.includes('/src/services/leaderboardService') || id.includes('/src/services/friendsService')) {
-            return 'arena';
-          }
         }
       }
     }
