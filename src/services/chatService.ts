@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/utils/logger';
 
 const log = createLogger('ChatService');

@@ -91,6 +91,8 @@ export interface GS {
   canvas: HTMLCanvasElement | null;
   audioCtx: AudioContext | null;
   particles: Particle[];
+  roomIdx: number;
+  flags: Record<string, any>;
 }
 
 export const CW = 640;
@@ -139,6 +141,8 @@ export function useGameState() {
     canvas: null,
     audioCtx: null,
     particles: [],
+    roomIdx: 0,
+    flags: {},
   });
 
   return gs;

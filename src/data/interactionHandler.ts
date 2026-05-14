@@ -1,10 +1,11 @@
 import { GameObject } from './roomGenerator';
 import { RoomTask } from './gameData';
+import { Quiz } from '@/types/quiz';
 
 export interface InteractionResult {
   type: 'none' | 'health' | 'xp' | 'speed' | 'key' | 'open_task' | 'next_room' | 'locked';
   value?: number;
-  task?: RoomTask;
+  task?: RoomTask | Quiz;
   objectId?: string;
 }
 

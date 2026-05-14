@@ -31,7 +31,7 @@ export default function ChatPage() {
         return;
       }
 
-      const other = data.user1.id === user.id ? data.user2 : data.user1;
+      const other = (data.user1 as any).id === user.id ? data.user2 : data.user1;
       setOtherUser(other);
       setLoading(false);
     };

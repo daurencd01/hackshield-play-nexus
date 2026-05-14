@@ -163,8 +163,9 @@ export default function GameScene({ missionId = "m1", onComplete }: GameScenePro
       spawnHackEffect(g, obj);
       SFX.success(g);
       if (obj.task) {
-        setTotalXP(p => p + obj.task!.xpReward);
-        addLog(g, `TASK COMPLETED: +${obj.task!.xpReward} XP`, "#00ff88");
+        const reward = (obj.task as any).xpReward || (obj.task as any).xp_reward || 0;
+        setTotalXP(p => p + reward);
+        addLog(g, `TASK COMPLETED: +${reward} XP`, "#00ff88");
       }
     }
 
