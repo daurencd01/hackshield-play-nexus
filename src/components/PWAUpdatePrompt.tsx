@@ -1,3 +1,4 @@
+/// <reference types="vite-plugin-pwa/react" />
 import { useState, useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { motion, AnimatePresence } from 'framer-motion';

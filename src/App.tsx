@@ -21,6 +21,7 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const OnboardingPage = lazy(() => import("./pages/Onboarding"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
 const ChatPage = lazy(() => import("./pages/Chat"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const LoadingScreen = () => (
   <div className="fixed inset-0 bg-black flex items-center justify-center z-[100]">

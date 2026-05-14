@@ -1,7 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUser } from '@/hooks/useUser';
-import { Layout } from '@/componentsLayout';
 import {
   usePublicProfile,
   useUserAchievements,

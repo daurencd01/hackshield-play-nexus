@@ -25,7 +25,7 @@ export function ChatsTab() {
 
     if (user) {
       const unsub = chatService.subscribeToMyChats(user.id, loadChats);
-      return unsub;
+      return () => { unsub(); };
     }
   }, [user]);
 
