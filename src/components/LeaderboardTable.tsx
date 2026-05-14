@@ -1,11 +1,32 @@
-import { LeaderboardEntry } from "@/data/mockData";
+import { useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { Link } from 'react-router-dom';
+
+interface LeaderboardEntry {
+  rank: number;
+  username: string;
+  avatar?: string;
+  isOnline?: boolean;
+  level: number;
+  missionsCompleted: number;
+  xp: number;
+}
 
 interface LeaderboardTableProps {
   entries: LeaderboardEntry[];
   highlightUser?: string;
 }
 
-const LeaderboardTable = ({ entries, highlightUser = "ShadowByte" }: LeaderboardTableProps) => {
+const LeaderboardTable = ({ entries, highlightUser = "" }: LeaderboardTableProps) => {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: entries.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 52, // Height of one row + gap
+    overscan: 10,
+  });
+
   const getRankStyle = (rank: number) => {
     if (rank === 1) return "text-neon-yellow text-glow-green font-bold";
     if (rank === 2) return "text-muted-foreground font-bold";
@@ -14,39 +35,65 @@ const LeaderboardTable = ({ entries, highlightUser = "ShadowByte" }: Leaderboard
   };
 
   return (
-    <div className="space-y-1">
-      {entries.map((entry) => {
-        const isHighlighted = entry.username === highlightUser;
-        return (
-          <div
-            key={entry.rank}
-            className={`flex items-center gap-3 rounded-md border px-3 py-2 transition-all ${
-              isHighlighted
-                ? "border-primary/40 bg-primary/5 box-glow-green"
-                : "border-transparent bg-muted/20 hover:bg-muted/40"
-            }`}
-          >
-            <span className={`w-6 text-center font-orbitron text-sm ${getRankStyle(entry.rank)}`}>
-              {entry.rank <= 3 ? ["🥇", "🥈", "🥉"][entry.rank - 1] : `#${entry.rank}`}
-            </span>
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted/50 text-base">
-              {entry.avatar}
-              {entry.isOnline && (
-                <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />
-              )}
+    <div 
+      ref={parentRef}
+      className="h-[500px] overflow-auto scrollbar-hide"
+    >
+      <div
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const entry = entries[virtualRow.index];
+          const isHighlighted = entry.username === highlightUser;
+          
+          return (
+            <div
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={rowVirtualizer.measureElement}
+              className="absolute top-0 left-0 w-full"
+              style={{
+                transform: `translateY(${virtualRow.start}px)`,
+                paddingBottom: '4px' // Gap simulation
+              }}
+            >
+              <Link
+                to={`/profile/${entry.username}`}
+                className={`flex items-center gap-3 rounded-md border px-3 py-2 transition-all ${
+                  isHighlighted
+                    ? "border-primary/40 bg-primary/5 box-glow-green"
+                    : "border-transparent bg-muted/20 hover:bg-muted/40"
+                }`}
+              >
+                <span className={`w-6 text-center font-orbitron text-sm ${getRankStyle(entry.rank)}`}>
+                  {entry.rank <= 3 ? ["🥇", "🥈", "🥉"][entry.rank - 1] : `#${entry.rank}`}
+                </span>
+                <div className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted/50 text-base">
+                  {entry.avatar || entry.username[0].toUpperCase()}
+                  {entry.isOnline && (
+                    <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`font-mono text-sm truncate ${isHighlighted ? "text-primary" : ""}`}>
+                    {entry.username}
+                  </p>
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    LVL {entry.level} · {entry.missionsCompleted} missions
+                  </p>
+                </div>
+                <span className="font-orbitron text-xs font-bold text-neon-yellow whitespace-nowrap">
+                  {entry.xp.toLocaleString()} XP
+                </span>
+              </Link>
             </div>
-            <div className="flex-1">
-              <p className={`font-mono text-sm ${isHighlighted ? "text-primary" : ""}`}>
-                {entry.username}
-              </p>
-              <p className="font-mono text-[10px] text-muted-foreground">
-                LVL {entry.level} · {entry.missionsCompleted} missions
-              </p>
-            </div>
-            <span className="font-orbitron text-xs font-bold text-neon-yellow">{entry.xp.toLocaleString()} XP</span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 };

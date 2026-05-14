@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { achievements } from "@/data/mockData";
+import { achievements } from "@/data/defaultData";
 import { Progress } from "@/components/ui/progress";
 import GameHeader from "@/components/GameHeader";
 

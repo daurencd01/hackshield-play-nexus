@@ -15,7 +15,7 @@ import { useGameLoop } from './game/useGameLoop';
 import { SFX, addLog, spawnHackEffect, triggerAlarm, INTERACT_COOLDOWN, INTERACT_DIST } from './game/gameLogic';
 import { GameObject, ObjectType, generateRoomContent } from '@/data/roomGenerator';
 import { handleInteraction } from '@/data/interactionHandler';
-import { ROOM_PROGRESSION } from '@/data/russianTasks';
+import { ROOM_PROGRESSION } from '@/data/gameData';
 import { useGameProgress } from '@/hooks/useGameProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingScreen } from './LoadingScreen';

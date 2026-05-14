@@ -1,5 +1,5 @@
-import { ROOM_PROGRESSION } from './russianTasks';
-import { getTaskForRoom, RoomTask } from './russianTasks';
+import { ROOM_PROGRESSION } from './gameData';
+import { getTaskForRoom, RoomTask } from './gameData';
 import { Quiz } from '@/types/quiz';
 
 export type ObjectType = 

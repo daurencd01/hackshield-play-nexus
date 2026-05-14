@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { currentPlayer } from "@/data/mockData";
+import { currentPlayer } from "@/data/defaultData";
 import { Progress } from "@/components/ui/progress";
 import { Shield, Swords, Users, User, Trophy, Gamepad2 } from "lucide-react";
 

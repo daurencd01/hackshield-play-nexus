@@ -4,7 +4,7 @@ import { Terminal, ChevronRight, CheckCircle, XCircle, RotateCcw, X, Award, Shie
 import { Button } from "@/components/ui/button";
 import { dataService } from "@/lib/dataService";
 import { addXp } from "@/hooks/useUser";
-import { RoomTask } from "@/data/russianTasks";
+import { RoomTask } from "@/data/gameData";
 import { Quiz } from "@/types/quiz";
 
 type AnswerState = "idle" | "submitting" | "correct" | "wrong";

@@ -1,5 +1,8 @@
-import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { createLogger } from '@/utils/logger';
+
+const log = createLogger('FriendsService');
+
 
 export const FriendRequestSchema = z.object({
   id: z.string().uuid(),
@@ -54,9 +57,10 @@ export const friendsService = {
       request_id: requestId
     });
     if (error) {
-      console.error('Accept failed:', error);
+      log.error('Accept failed:', error);
       return false;
     }
+
     return data;
   },
 
@@ -65,9 +69,10 @@ export const friendsService = {
       request_id: requestId
     });
     if (error) {
-      console.error('Decline failed:', error);
+      log.error('Decline failed:', error);
       return false;
     }
+
     return data;
   },
 
@@ -89,9 +94,10 @@ export const friendsService = {
       if (error) throw error;
       return (data || []).map(d => FriendRequestSchema.parse(d));
     } catch (e) {
-      console.error('[Friends] Incoming requests failed:', e);
+      log.error('Incoming requests failed:', e);
       return [];
     }
+
   },
 
   async getFriendshipStatus(otherUserId: string): Promise<
@@ -163,9 +169,10 @@ export const friendsService = {
       .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`);
 
     if (error) {
-      console.error('[Friends] Remove failed:', error);
+      log.error('Remove failed:', error);
       return false;
     }
+
     return true;
   }
 };

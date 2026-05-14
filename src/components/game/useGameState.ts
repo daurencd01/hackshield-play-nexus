@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { GameObject } from '@/data/roomGenerator';
-import { RoomTask } from '@/data/russianTasks';
+import { RoomTask } from '@/data/gameData';
 import { LogLine } from './GameRenderers';
 
 export interface Vec2 { x: number; y: number }

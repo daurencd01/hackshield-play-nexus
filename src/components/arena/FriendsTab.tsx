@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { leaderboardService, type LeaderboardEntry } from '@/services/leaderboardService';
 import { friendsService } from '@/services/friendsService';
 import { chatService } from '@/services/chatService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Props {
@@ -82,19 +82,22 @@ export function FriendsTab({ onAddFriend }: Props) {
     <div className="space-y-2">
       {friends.map((friend) => (
         <div key={friend.id} className="flex items-center gap-3 p-3 bg-gray-900/40 rounded-xl border border-white/5">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-cyber-green/20 border border-cyber-green flex items-center justify-center text-cyber-green font-mono">
+          <Link to={`/profile/${friend.username || friend.id}`} className="relative group">
+            <div className="w-10 h-10 rounded-full bg-cyber-green/20 border border-cyber-green flex items-center justify-center text-cyber-green font-mono group-hover:scale-105 transition-transform">
               {(friend.username || '?')[0].toUpperCase()}
             </div>
             {friend.is_online && (
               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-black rounded-full" />
             )}
-          </div>
+          </Link>
 
           <div className="flex-1 min-w-0">
-            <div className="text-white font-mono text-sm truncate">{friend.username}</div>
-            <div className="text-[10px] text-gray-500">LVL {friend.level}</div>
+            <Link to={`/profile/${friend.username || friend.id}`} className="text-white font-mono text-sm truncate hover:text-cyber-green transition-colors block">
+              {friend.username}
+            </Link>
+            <div className="text-[10px] text-gray-500 uppercase font-mono">LVL {friend.level}</div>
           </div>
+
 
           <div className="flex gap-2">
             <button

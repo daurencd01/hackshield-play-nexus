@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { missions } from '@/data/mockData';
+import { missions } from '@/data/defaultData';
 import MissionCard from '@/components/MissionCard';
 import { Search, Filter, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

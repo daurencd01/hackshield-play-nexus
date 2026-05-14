@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { missions } from "@/data/mockData";
+import { missions } from "@/data/defaultData";
 import ScenarioPlayer from "@/components/ScenarioPlayer";
 import GameHeader from "@/components/GameHeader";
 import { ErrorBoundary } from "@/components/ErrorBoundary";

@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from 'vite-plugin-pwa';
 import path from "path";
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -36,17 +37,19 @@ export default defineConfig(({ mode }) => ({
         categories: ['games', 'education'],
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: '/pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
-            src: 'pwa-512x512.png',
+            src: '/pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
-            src: 'pwa-512x512-maskable.png',
+            src: '/pwa-512x512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable'
@@ -119,8 +122,14 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       devOptions: {
-        enabled: false  // включить true для тестирования PWA в dev
+        enabled: false
       }
+    }),
+    visualizer({
+      open: false, // Отключаем авто-открытие в среде без браузера
+      filename: 'audit/stats.html',
+      gzipSize: true,
+      brotliSize: true
     })
   ],
   resolve: {
@@ -130,15 +139,61 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
   build: {
+    target: 'es2020',
+    cssCodeSplit: true,
+    sourcemap: false,
+    minify: 'esbuild',
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['lucide-react', 'framer-motion', 'recharts', 'clsx', 'tailwind-merge'],
-          'vendor-utils': ['date-fns', 'zod', 'dompurify', 'i18next'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react/') ||
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/scheduler/')) {
+            return 'react';
+          }
+          if (id.includes('node_modules/react-router')) {
+            return 'router';
+          }
+          if (id.includes('node_modules/@supabase')) {
+            return 'supabase';
+          }
+          if (id.includes('node_modules/framer-motion')) {
+            return 'motion';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'icons';
+          }
+          if (id.includes('node_modules/@radix-ui')) {
+            return 'radix';
+          }
+          if (id.includes('node_modules/i18next')) {
+            return 'i18n';
+          }
+          if (id.includes('node_modules/zod') || id.includes('node_modules/dompurify')) {
+            return 'validation';
+          }
+          if (id.includes('node_modules/date-fns')) {
+            return 'date-utils';
+          }
+          if (id.includes('node_modules/clsx') || id.includes('node_modules/tailwind-merge')) {
+            return 'css-utils';
+          }
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+          if (id.includes('/src/components/game/') || id.includes('/src/pages/Game2D')) {
+            return 'game-2d';
+          }
+          if (id.includes('/src/components/chat/') || id.includes('/src/services/chatService')) {
+            return 'chat';
+          }
+          if (id.includes('/src/components/arena/') || id.includes('/src/services/leaderboardService') || id.includes('/src/services/friendsService')) {
+            return 'arena';
+          }
         }
       }
-    },
-    chunkSizeWarningLimit: 1000
+    }
   }
 }));
