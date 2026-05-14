@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { UserProfile } from "@/hooks/useUser";
+import { UserProfile } from "@/types/game";
 
 const AVATAR_BUCKET = "avatars";
 
@@ -20,8 +20,8 @@ export function useProfileManager() {
       return; 
     }
 
-    let { data, error } = await supabase
-      .from("profiles")
+    let { data, error } = await (supabase
+      .from("profiles") as any)
       .select("id, email, username, full_name, role, xp, created_at, avatar_url, telegram, instagram")
       .eq("id", authUser.id)
       .maybeSingle();
@@ -41,8 +41,8 @@ export function useProfileManager() {
         email: authUser.email,
         updated_at: new Date().toISOString()
       };
-      const { data: created, error: createError } = await supabase
-        .from('profiles')
+      const { data: created, error: createError } = await (supabase
+        .from('profiles') as any)
         .upsert(newProfile)
         .select()
         .single();
@@ -68,8 +68,8 @@ export function useProfileManager() {
 
   const handleSave = async (updates: Partial<UserProfile>) => {
     if (!user) return;
-    const { error } = await supabase
-      .from("profiles")
+    const { error } = await (supabase
+      .from("profiles") as any)
       .update(updates)
       .eq("id", user.id);
 

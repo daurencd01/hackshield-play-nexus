@@ -58,6 +58,7 @@ export default {
           pink: "hsl(var(--neon-pink))",
           yellow: "hsl(var(--neon-yellow))",
         },
+        'cyber-green': '#00ff88',
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

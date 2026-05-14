@@ -3,7 +3,7 @@ import { User, Shield, MessageCircle, X, Save, Loader2 } from "lucide-react";
 import { FaInstagram } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { UserProfile } from "@/hooks/useUser";
+import { UserProfile } from "@/types/game";
 
 interface ProfileFormProps {
   user: UserProfile;

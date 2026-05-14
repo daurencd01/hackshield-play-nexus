@@ -1,4 +1,4 @@
-import React, { useState, useRef, TouchEvent } from 'react';
+import React, { useState, useRef } from 'react';
 
 interface JoystickProps {
   onMove: (dx: number, dy: number) => void;
@@ -11,23 +11,22 @@ export function VirtualJoystick({ onMove, onStop }: JoystickProps) {
   const baseRef = useRef<HTMLDivElement>(null);
   const center = useRef({ x: 0, y: 0 });
 
-  const RADIUS = 40;
+  const RADIUS = 50;
 
-  const handleStart = (e: TouchEvent) => {
-    const touch = e.touches[0];
+  const handleStart = (e: React.PointerEvent) => {
     const rect = baseRef.current!.getBoundingClientRect();
     center.current = {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2
     };
     setActive(true);
-    updatePosition(touch.clientX, touch.clientY);
+    updatePosition(e.clientX, e.clientY);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
-  const handleMove = (e: TouchEvent) => {
+  const handleMove = (e: React.PointerEvent) => {
     if (!active) return;
-    const touch = e.touches[0];
-    updatePosition(touch.clientX, touch.clientY);
+    updatePosition(e.clientX, e.clientY);
   };
 
   const updatePosition = (clientX: number, clientY: number) => {
@@ -44,29 +43,35 @@ export function VirtualJoystick({ onMove, onStop }: JoystickProps) {
     onMove(dx / RADIUS, dy / RADIUS);
   };
 
-  const handleEnd = () => {
+  const handleEnd = (e: React.PointerEvent) => {
     setActive(false);
     setPos({ x: 0, y: 0 });
     onStop();
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
   return (
     <div
       ref={baseRef}
-      onTouchStart={handleStart}
-      onTouchMove={handleMove}
-      onTouchEnd={handleEnd}
-      onTouchCancel={handleEnd}
-      className="fixed bottom-10 left-10 w-24 h-24 rounded-full bg-black/40 border-2 border-[#00ff88]/30 backdrop-blur-sm z-40 select-none touch-none"
+      onPointerDown={handleStart}
+      onPointerMove={handleMove}
+      onPointerUp={handleEnd}
+      onPointerCancel={handleEnd}
+      className="fixed bottom-10 left-10 w-32 h-32 rounded-full bg-black/40 border-2 border-[#00ff88]/40 backdrop-blur-md z-40 select-none touch-none"
       style={{ touchAction: 'none' }}
     >
-      <div className="absolute inset-1.5 rounded-full border border-[#00ff88]/10" />
+      {/* Background ring */}
+      <div className="absolute inset-2 rounded-full border border-[#00ff88]/10" />
+
+      {/* Joystick handle */}
       <div
-        className="absolute w-10 h-10 rounded-full bg-[#00ff88]/50 border-2 border-[#00ff88] transition-transform duration-75"
+        className="absolute w-14 h-14 rounded-full bg-[#00ff88]/60 border-2 border-[#00ff88] transition-all"
         style={{
-          left: 'calc(50% - 20px)',
-          top: 'calc(50% - 20px)',
+          left: 'calc(50% - 28px)',
+          top: 'calc(50% - 28px)',
           transform: `translate(${pos.x}px, ${pos.y}px)`,
+          opacity: active ? 1 : 0.7,
+          boxShadow: active ? '0 0 20px rgba(0,255,136,0.6)' : 'none'
         }}
       />
     </div>
@@ -82,29 +87,37 @@ interface ActionProps {
 
 export function ActionButtons({ onAction, onCrouch, isCrouching, hasInteraction }: ActionProps) {
   return (
-    <div className="fixed bottom-10 right-10 flex flex-col gap-4 z-40">
+    <div className="fixed bottom-10 right-10 flex flex-col items-end gap-5 z-40">
       <button
-        onTouchStart={(e) => { e.preventDefault(); onAction(); }}
-        className={`w-16 h-16 rounded-full font-mono text-2xl border-2 transition-all active:scale-90 flex items-center justify-center ${
+        onPointerDown={(e) => { 
+          e.stopPropagation(); 
+          onCrouch(); 
+          if ('vibrate' in navigator) navigator.vibrate(10);
+        }}
+        className={`w-16 h-16 rounded-full font-mono text-xl border-2 transition-all active:scale-90 flex items-center justify-center select-none backdrop-blur-md ${
+          isCrouching
+            ? 'bg-[#00ff88] border-[#00ff88] text-black shadow-lg shadow-[#00ff88]/50'
+            : 'bg-black/40 border-[#00ff88]/40 text-[#00ff88]'
+        }`}
+        style={{ touchAction: 'none' }}
+      >
+        🚶
+      </button>
+
+      <button
+        onPointerDown={(e) => { 
+          e.stopPropagation(); 
+          onAction(); 
+          if ('vibrate' in navigator) navigator.vibrate(20);
+        }}
+        className={`w-20 h-20 rounded-full font-mono text-2xl border-2 transition-all active:scale-90 flex items-center justify-center select-none backdrop-blur-md ${
           hasInteraction
-            ? 'bg-[#00ff88]/30 border-[#00ff88] text-white animate-pulse'
-            : 'bg-black/40 border-gray-600 text-gray-500'
+            ? 'bg-[#00ff88] border-[#00ff88] text-black animate-pulse shadow-lg shadow-[#00ff88]/50'
+            : 'bg-black/60 border-[#00ff88]/40 text-[#00ff88]'
         }`}
         style={{ touchAction: 'none' }}
       >
         E
-      </button>
-
-      <button
-        onTouchStart={(e) => { e.preventDefault(); onCrouch(); }}
-        className={`w-14 h-14 rounded-full font-mono text-xl border-2 transition-all active:scale-90 flex items-center justify-center ${
-          isCrouching
-            ? 'bg-purple-500/40 border-purple-400 text-white'
-            : 'bg-black/40 border-gray-600 text-gray-400'
-        }`}
-        style={{ touchAction: 'none' }}
-      >
-        👤
       </button>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { GS, CW, CH } from './useGameState';
 import { renderObjects, renderPlayer, renderHUD } from './GameRenderers';
-import { updateStealth, updateParticles, INTERACT_COOLDOWN } from './gameLogic';
+import { updatePlayerMovement, updateNearbyObject, updateStealth, updateParticles, INTERACT_COOLDOWN } from './gameLogic';
 
 export function useGameLoop(
   gs: React.MutableRefObject<GS>,
@@ -18,8 +18,9 @@ export function useGameLoop(
     const dpr = window.devicePixelRatio || 1;
     canvas.width = CW * dpr;
     canvas.height = CH * dpr;
-    canvas.style.width = `${CW}px`;
-    canvas.style.height = `${CH}px`;
+    canvas.style.width = '100%';
+    canvas.style.height = 'auto';
+    canvas.style.aspectRatio = `${CW} / ${CH}`;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -45,6 +46,8 @@ export function useGameLoop(
       if (g.interactCooldown > 0) g.interactCooldown -= dt;
 
       // Logic
+      updatePlayerMovement(g, dt);
+      updateNearbyObject(g, dt);
       updateStealth(g, dt, now);
       updateParticles(g, dt);
 

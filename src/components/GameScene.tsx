@@ -16,6 +16,10 @@ import { SFX, addLog, spawnHackEffect, triggerAlarm, INTERACT_COOLDOWN, INTERACT
 import { GameObject, ObjectType, generateRoomContent } from '@/data/roomGenerator';
 import { handleInteraction } from '@/data/interactionHandler';
 import { ROOM_PROGRESSION } from '@/data/russianTasks';
+import { useGameProgress } from '@/hooks/useGameProgress';
+import { useAuth } from '@/contexts/AuthContext';
+import { LoadingScreen } from './LoadingScreen';
+import { quizService } from '@/services/quizService';
 
 interface ScenarioRoom {
   id: string; mission_id: string; title: string;
@@ -28,9 +32,12 @@ interface GameSceneProps {
   onComplete?: (totalXp: number) => void;
 }
 
-export default function GameScene({ missionId = "m1", userId = "u1", onComplete }: GameSceneProps) {
+export default function GameScene({ missionId = "m1", onComplete }: GameSceneProps) {
+  const { user } = useAuth();
+  const userId = user?.id || "u1";
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gs = useGameState();
+  const { progress, loading: progressLoading, saveProgress, completeRoom } = useGameProgress(missionId);
 
   // React state
   const [isMobile, setIsMobile] = useState(false);
@@ -53,8 +60,10 @@ export default function GameScene({ missionId = "m1", userId = "u1", onComplete 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Load Rooms
+  // Load Rooms and Sync Progress
   useEffect(() => {
+    if (progressLoading) return;
+
     const load = async () => {
       try {
         const rd = await dataService.getScenarioRooms(missionId);
@@ -62,7 +71,25 @@ export default function GameScene({ missionId = "m1", userId = "u1", onComplete 
         setRooms(rd);
         
         // Initial room content
-        gs.current.objects = generateRoomContent(0, CW, CH);
+        const startIdx = progress?.current_room_index || 0;
+        setRoomIdx(startIdx);
+        gs.current.roomIdx = startIdx;
+        
+        // Fetch Quiz for current room
+        const config = ROOM_PROGRESSION[startIdx] || ROOM_PROGRESSION[0];
+        const quizzes = await quizService.getByFilter({ difficulty: config.difficulty });
+        const roomQuiz = quizzes.length > 0 ? quizzes[Math.floor(Math.random() * quizzes.length)] : undefined;
+        
+        gs.current.objects = generateRoomContent(startIdx, CW, CH, roomQuiz);
+
+        if (progress) {
+          gs.current.health = progress.health;
+          gs.current.sessionXp = progress.session_xp;
+          gs.current.flags = progress.flags;
+          gs.current.hasKeyCard = progress.has_key_card;
+          setTotalXP(progress.total_xp_earned);
+        }
+
         setPhase("playing");
       } catch (err) {
         console.error(err);
@@ -70,7 +97,24 @@ export default function GameScene({ missionId = "m1", userId = "u1", onComplete 
       }
     };
     load();
-  }, [missionId, gs]);
+  }, [missionId, gs, progress, progressLoading]);
+
+  // Автосейв каждые 10 сек
+  useEffect(() => {
+    if (phase !== 'playing') return;
+
+    const interval = setInterval(() => {
+      saveProgress({
+        current_room_index: gs.current.roomIdx,
+        health: gs.current.health,
+        session_xp: gs.current.sessionXp,
+        flags: gs.current.flags,
+        has_key_card: gs.current.hasKeyCard
+      });
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [saveProgress, phase, gs]);
 
   // Modals & Progress
   const closeModal = () => {
@@ -90,14 +134,24 @@ export default function GameScene({ missionId = "m1", userId = "u1", onComplete 
     const config = ROOM_PROGRESSION[nextIdx] || ROOM_PROGRESSION[ROOM_PROGRESSION.length - 1];
     
     gs.current.transitioning = true;
-    setTimeout(() => {
-      setRoomIdx(nextIdx);
-      gs.current.objects = generateRoomContent(nextIdx, CW, CH);
-      gs.current.playerTarget = gs.current.playerRender = { x: WALL + 40, y: CH / 2 };
-      gs.current.hasKeyCard = false;
-      gs.current.alarmActive = false;
-      gs.current.transitioning = false;
-    }, 400);
+    
+    // Save progress when moving to next room
+    completeRoom(roomIdx, gs.current.sessionXp);
+
+    // Prepare next room quiz
+    quizService.getByFilter({ difficulty: config.difficulty }).then(quizzes => {
+      const nextQuiz = quizzes.length > 0 ? quizzes[Math.floor(Math.random() * quizzes.length)] : undefined;
+      
+      setTimeout(() => {
+        setRoomIdx(nextIdx);
+        gs.current.roomIdx = nextIdx;
+        gs.current.objects = generateRoomContent(nextIdx, CW, CH, nextQuiz);
+        gs.current.playerTarget = gs.current.playerRender = { x: WALL + 40, y: CH / 2 };
+        gs.current.hasKeyCard = false;
+        gs.current.alarmActive = false;
+        gs.current.transitioning = false;
+      }, 400);
+    });
   }, [roomIdx, rooms, totalXP, userId, onComplete, gs]);
 
   const handleCorrect = useCallback(() => {
@@ -159,13 +213,8 @@ export default function GameScene({ missionId = "m1", userId = "u1", onComplete 
   useGameLoop(gs, canvasRef, phase, roomIdx, rooms.length, totalXP);
 
   // Render Logic
-  if (phase === "loading") {
-    return (
-      <div className="flex flex-col items-center justify-center h-[400px] bg-black/40 rounded-lg border border-white/5">
-        <Loader2 className="w-10 h-10 text-[#00ff88] animate-spin mb-4" />
-        <p className="font-orbitron text-sm text-[#00ff88] animate-pulse">INITIALIZING NEURAL LINK...</p>
-      </div>
-    );
+  if (phase === "loading" || progressLoading) {
+    return <LoadingScreen />;
   }
 
   if (phase === "error") {
@@ -186,13 +235,11 @@ export default function GameScene({ missionId = "m1", userId = "u1", onComplete 
 
   return (
     <div className="flex flex-col items-center gap-4 relative">
-      <div className="relative group rounded-xl overflow-hidden border border-[#00ff88]/20 bg-black shadow-2xl">
+      <div className="relative group rounded-xl overflow-hidden border border-[#00ff88]/20 bg-black shadow-2xl w-full h-full">
         <canvas
           ref={canvasRef}
-          className="cursor-none block"
+          className="cursor-none block w-full h-full"
           style={{
-            maxWidth: CW,
-            width: "100%",
             boxShadow: gs.current.alarmActive ? "0 0 40px rgba(255,0,0,0.15)" : "none"
           }}
         />
@@ -252,34 +299,38 @@ export default function GameScene({ missionId = "m1", userId = "u1", onComplete 
       </AnimatePresence>
 
       {/* Mobile Controls */}
-        <div className="w-full max-w-[640px] px-4 flex items-center justify-between mt-4 pb-8">
-          <VirtualJoystick 
-            onMove={(dx, dy) => {
-              gs.current.keys.up = dy < -0.3;
-              gs.current.keys.down = dy > 0.3;
-              gs.current.keys.left = dx < -0.3;
-              gs.current.keys.right = dx > 0.3;
-            }}
-            onStop={() => {
-              gs.current.keys.up = false;
-              gs.current.keys.down = false;
-              gs.current.keys.left = false;
-              gs.current.keys.right = false;
-            }}
-          />
-          <ActionButtons
-            onAction={() => {
-              const ni = gs.current.nearbyIdx;
-              if (ni !== null) triggerInteract(ni);
-            }}
-            onCrouch={() => {
-              gs.current.isCrouching = !gs.current.isCrouching;
-              haptic.impact();
-            }}
-            isCrouching={gs.current.isCrouching}
-            hasInteraction={gs.current.nearbyIdx !== null}
-          />
+      {isMobile && (
+        <div className="fixed inset-0 pointer-events-none z-40">
+          <div className="pointer-events-auto">
+            <VirtualJoystick 
+              onMove={(dx, dy) => {
+                gs.current.keys.up = dy < -0.3;
+                gs.current.keys.down = dy > 0.3;
+                gs.current.keys.left = dx < -0.3;
+                gs.current.keys.right = dx > 0.3;
+              }}
+              onStop={() => {
+                gs.current.keys.up = false;
+                gs.current.keys.down = false;
+                gs.current.keys.left = false;
+                gs.current.keys.right = false;
+              }}
+            />
+            <ActionButtons
+              onAction={() => {
+                const ni = gs.current.nearbyIdx;
+                if (ni !== null) triggerInteract(ni);
+              }}
+              onCrouch={() => {
+                gs.current.isCrouching = !gs.current.isCrouching;
+                if ('vibrate' in navigator) navigator.vibrate(10);
+              }}
+              isCrouching={gs.current.isCrouching}
+              hasInteraction={gs.current.nearbyIdx !== null}
+            />
+          </div>
         </div>
+      )}
 
       {/* Task Modal */}
       <AnimatePresence>

@@ -56,8 +56,8 @@ export async function uploadAvatar(
   const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
   // --- Persist URL into DB ---
-  const { error: dbError } = await supabase
-    .from('profiles')
+  const { error: dbError } = await (supabase
+    .from('profiles') as any)
     .update({ avatar_url: publicUrl })
     .eq('id', userId);
 

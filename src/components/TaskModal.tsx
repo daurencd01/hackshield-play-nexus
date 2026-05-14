@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { dataService } from "@/lib/dataService";
 import { addXp } from "@/hooks/useUser";
 import { RoomTask } from "@/data/russianTasks";
+import { Quiz } from "@/types/quiz";
 
 type AnswerState = "idle" | "submitting" | "correct" | "wrong";
 
 export interface TaskModalProps {
-  room: RoomTask;
+  room: Quiz | RoomTask;
   roomIndex: number;
   totalRooms: number;
   userId: string;
@@ -29,6 +30,26 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
   const [explanation, setExp]   = useState("");
   const submitting = useRef(false);
 
+  // Helper to get field values regardless of type
+  const getField = (field: string) => {
+    if (field === 'title') return (room as any).title_ru || (room as any).title;
+    if (field === 'description') return (room as any).description_ru || (room as any).description;
+    if (field === 'hint') return (room as any).hint_ru || (room as any).hint;
+    if (field === 'type') {
+      const type = (room as any).type;
+      if (type === 'multiple_choice') return 'choice';
+      if (type === 'text_input') return 'text';
+      return type;
+    }
+    return (room as any)[field];
+  };
+
+  const title = getField('title');
+  const description = getField('description');
+  const hint = getField('hint');
+  const type = getField('type');
+  const xpReward = (room as any).xp_reward || (room as any).xpReward;
+
   useEffect(() => { document.body.style.overflow="hidden"; return () => { document.body.style.overflow=""; }; }, []);
 
   const submitResult = useCallback(async (isCorrect: boolean, exp: string) => {
@@ -39,7 +60,7 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
 
     if (isCorrect) {
       await Promise.allSettled([
-        addXp(userId, room.xpReward),
+        addXp(userId, xpReward),
         dataService.saveUserProgress(userId, missionId, roomIndex, isLast)
       ]);
       onSuccess();
@@ -52,12 +73,13 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
       setTimeout(() => setShake(false), 500);
     }
     submitting.current = false;
-  }, [state, room, userId, roomIndex, isLast, onSuccess, onError, missionId]);
+  }, [state, xpReward, userId, roomIndex, isLast, onSuccess, onError, missionId]);
 
   const handleChoiceSubmit = (isCorrect: boolean, exp: string) => submitResult(isCorrect, exp);
 
   const handleBinarySubmit = (choice: 'yes' | 'no') => {
-    const isCorrect = choice === room.correctChoice;
+    const correctChoice = (room as any).correct_choice || (room as any).correctChoice;
+    const isCorrect = choice === correctChoice;
     submitResult(isCorrect, isCorrect ? "Правильный выбор!" : "Ошибка. Это решение было небезопасным.");
   };
 
@@ -65,20 +87,28 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
     if (!textVal.trim()) return;
     let isCorrect = false;
 
-    if (room.type === 'sequence' && room.sequence) {
-      const correctSeq = room.sequence.map((_, i) => i + 1).join('');
-      const inputSeq = textVal.replace(/\D/g, '');
-      if (inputSeq === correctSeq) isCorrect = true;
-      submitResult(isCorrect, isCorrect ? "Последовательность верна." : "Неверный порядок действий.");
-      return;
+    if (type === 'sequence') {
+      const sequence = (room as any).correct_sequence || (room as any).sequence;
+      if (sequence) {
+        const correctSeq = sequence.map((_: any, i: number) => i + 1).join('');
+        const inputSeq = textVal.replace(/\D/g, '');
+        if (inputSeq === correctSeq) isCorrect = true;
+        submitResult(isCorrect, isCorrect ? "Последовательность верна." : "Неверный порядок действий.");
+        return;
+      }
     }
 
-    const v = room.caseSensitive ? textVal.trim() : textVal.trim().toLowerCase();
-    const ans = room.caseSensitive ? room.correctAnswer : room.correctAnswer?.toLowerCase();
+    const caseSensitive = (room as any).case_sensitive || (room as any).caseSensitive;
+    const v = caseSensitive ? textVal.trim() : textVal.trim().toLowerCase();
+    
+    const correctAnswer = (room as any).correct_answer || (room as any).correctAnswer;
+    const ans = caseSensitive ? correctAnswer : correctAnswer?.toLowerCase();
     
     if (v === ans) isCorrect = true;
-    if (room.acceptVariants) {
-      const variants = room.caseSensitive ? room.acceptVariants : room.acceptVariants.map(x => x.toLowerCase());
+    
+    const acceptVariants = (room as any).accept_variants || (room as any).acceptVariants;
+    if (acceptVariants) {
+      const variants = caseSensitive ? acceptVariants : acceptVariants.map((x: string) => x.toLowerCase());
       if (variants.includes(v)) isCorrect = true;
     }
 
@@ -86,6 +116,8 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
   };
 
   const retry = () => { setTextVal(""); setState("idle"); };
+
+  const options = (room as any).options || [];
 
   return (
     <motion.div
@@ -113,8 +145,8 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
         <div className="relative flex items-center justify-between border-b border-primary/20 bg-black/40 px-4 py-3">
           <div className="flex items-center gap-2">
             <Terminal className="h-4 w-4 text-primary" />
-            <span className="font-orbitron text-xs font-bold uppercase tracking-widest text-primary">{room.title}</span>
-            <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[9px] text-primary">{room.category}</span>
+            <span className="font-orbitron text-xs font-bold uppercase tracking-widest text-primary">{title}</span>
+            <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[9px] text-primary">{getField('category')}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="font-mono text-[10px] text-muted-foreground">ROOM [{roomIndex+1}/{totalRooms}]</span>
@@ -125,12 +157,12 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
         </div>
         
         <div className="relative p-5 space-y-4">
-          <p className="font-mono text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">{room.description}</p>
+          <p className="font-mono text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">{description}</p>
           
-          {room.type === 'sequence' && room.sequence && (
+          {type === 'sequence' && (
             <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-1">
-              {room.sequence.map((seqStr, idx) => (
-                <div key={idx} className="font-mono text-xs text-primary/80">{seqStr}</div>
+              {((room as any).correct_sequence || (room as any).sequence || []).map((seqStr: string, idx: number) => (
+                <div key={idx} className="font-mono text-xs text-primary/80">{idx + 1}. {seqStr}</div>
               ))}
             </div>
           )}
@@ -138,24 +170,24 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
           {(state === "idle" || state === "submitting") && (
             <div className="space-y-3 mt-4">
               
-              {room.type === 'choice' && room.options && (
+              {type === 'choice' && options.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <label className="font-orbitron text-[10px] font-bold uppercase tracking-widest text-secondary">&gt;_ ВЫБЕРИТЕ ВАРИАНТ:</label>
-                  {room.options.map((opt, i) => (
+                  {options.map((opt: any, i: number) => (
                     <button
                       key={i}
-                      onClick={() => handleChoiceSubmit(opt.isCorrect, opt.explanation)}
+                      onClick={() => handleChoiceSubmit(opt.is_correct ?? opt.isCorrect, opt.explanation_ru ?? opt.explanation)}
                       disabled={state === "submitting"}
                       className="flex w-full items-center justify-between rounded-md border border-primary/20 bg-black/40 px-4 py-3 font-mono text-sm text-primary transition-all hover:bg-primary/10 disabled:opacity-50 text-left"
                     >
-                      <span>{opt.text}</span>
+                      <span>{opt.text_ru || opt.text}</span>
                       <ChevronRight className="h-4 w-4 opacity-50" />
                     </button>
                   ))}
                 </div>
               )}
 
-              {room.type === 'binary' && (
+              {type === 'binary' && (
                 <div className="flex gap-3">
                   <Button onClick={() => handleBinarySubmit('yes')} disabled={state === "submitting"} className="flex-1 font-orbitron text-xs uppercase bg-primary text-primary-foreground hover:bg-primary/90">
                     Да
@@ -166,10 +198,10 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
                 </div>
               )}
 
-              {(room.type === 'text' || room.type === 'sequence' || room.type === 'code') && (
+              {(type === 'text' || type === 'sequence' || type === 'code') && (
                 <div className="space-y-3">
                   <label className="font-orbitron text-[10px] font-bold uppercase tracking-widest text-secondary">
-                    &gt;_ {room.type === 'sequence' ? "ВВЕДИТЕ НОМЕРА ВЕРНОМ ПОРЯДКЕ (напр. 12345):" : "ВВЕДИТЕ ОТВЕТ:"}
+                    &gt;_ {type === 'sequence' ? "ВВЕДИТЕ НОМЕРА ВЕРНОМ ПОРЯДКЕ (напр. 12345):" : "ВВЕДИТЕ ОТВЕТ:"}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -180,7 +212,7 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
                       onKeyDown={e => e.key === "Enter" && handleTextSubmit()}
                       disabled={state === "submitting"}
                       className="flex-1 rounded border border-primary/30 bg-black/50 px-3 py-2 font-mono text-sm text-primary placeholder:text-primary/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
-                      placeholder={room.type === 'sequence' ? "12345" : "Ввод..."}
+                      placeholder={type === 'sequence' ? "12345" : "Ввод..."}
                     />
                     <Button onClick={handleTextSubmit} disabled={state === "submitting" || !textVal.trim()} className="font-orbitron text-xs uppercase bg-primary text-primary-foreground hover:bg-primary/90 px-6">
                       <Terminal className="mr-2 h-4 w-4" /> Ввод
@@ -200,7 +232,7 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
                     <div className="font-orbitron text-sm font-bold text-primary">ACCESS GRANTED</div>
                     <div className="mt-1 font-mono text-[11px] leading-relaxed text-primary/80">{explanation}</div>
                   </div>
-                  <motion.span initial={{ opacity:0, scale:0.5 }} animate={{ opacity: xpVisible ? 1 : 0, scale: xpVisible ? 1 : 1.2 }} className="ml-auto font-orbitron text-lg font-bold text-neon-yellow drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]">+{room.xpReward} XP</motion.span>
+                  <motion.span initial={{ opacity:0, scale:0.5 }} animate={{ opacity: xpVisible ? 1 : 0, scale: xpVisible ? 1 : 1.2 }} className="ml-auto font-orbitron text-lg font-bold text-neon-yellow drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]">+{xpReward} XP</motion.span>
                 </div>
                 <Button onClick={onCorrect} className="w-full font-orbitron text-xs uppercase bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(0,255,136,0.4)] transition-all">
                   {isLast ? <><Award className="mr-2 h-4 w-4" /> Завершить Миссию</> : "Отключиться от терминала"}
@@ -221,9 +253,9 @@ export default function TaskModal({ room, roomIndex, totalRooms, userId, isLast,
                   <Button variant="outline" onClick={retry} className="h-8 font-orbitron text-[10px] uppercase border-destructive/40 text-destructive hover:bg-destructive/20 transition-all">
                     <RotateCcw className="mr-1.5 h-3 w-3" /> Повторить
                   </Button>
-                  {room.hint && (
+                  {hint && (
                     <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground bg-black/40 px-2 py-1 rounded border border-white/5">
-                      <ShieldAlert className="h-3 w-3 text-secondary" /> {room.hint}
+                      <ShieldAlert className="h-3 w-3 text-secondary" /> {hint}
                     </div>
                   )}
                 </div>

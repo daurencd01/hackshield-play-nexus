@@ -1,29 +1,18 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-
-export interface UserProfile {
-  id: string;
-  email: string | null;
-  xp: number;
-  username: string | null;
-  full_name: string | null;
-  role: string | null;
-  created_at: string | null;
-  avatar_url: string | null;
-  telegram: string | null;
-  instagram: string | null;
-}
+export type { UserProfile } from '@/types/game';
+import { UserProfile } from '@/types/game';
 
 export function useUser() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (authUser: any): Promise<UserProfile | null> => {
-    let { data, error } = await supabase
-      .from('profiles')
+    let { data, error } = await (supabase
+      .from('profiles') as any)
       .select('id, email, username, full_name, role, xp, created_at, avatar_url, telegram, instagram')
       .eq('id', authUser.id)
-      .maybeSingle(); // safe: returns null instead of 406 when no row exists
+      .maybeSingle(); 
 
     if (error) {
       console.warn('[useUser] Profile fetch error:', error.message);
@@ -41,8 +30,8 @@ export function useUser() {
         updated_at: new Date().toISOString()
       };
       
-      const { data: created, error: createError } = await supabase
-        .from('profiles')
+      const { data: created, error: createError } = await (supabase
+        .from('profiles') as any)
         .upsert(newProfile)
         .select('id, email, username, full_name, role, xp, created_at, avatar_url, telegram, instagram')
         .single();
@@ -115,28 +104,22 @@ export function useUser() {
 }
 
 export async function addXp(userId: string, amount: number): Promise<number | null> {
-  // Verify session and ownership before any DB write
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session || session.user.id !== userId) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== userId) return null;
+
+    const { error } = await (supabase as any).rpc('increment_xp', { xp_to_add: amount });
+    if (error) throw error;
+
+    const { data: current } = await (supabase
+      .from('profiles') as any)
+      .select('xp')
+      .eq('id', userId)
+      .maybeSingle();
+
+    return current?.xp ?? null;
+  } catch (e) {
+    console.error('[useUser] addXp failed:', e);
     return null;
   }
-
-  const { data: current } = await supabase
-    .from('profiles')
-    .select('xp')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (!current) return null;
-
-  const newXp = (current.xp || 0) + amount;
-
-  const { data: updated } = await supabase
-    .from('profiles')
-    .update({ xp: newXp })
-    .eq('id', userId)
-    .select('xp')
-    .maybeSingle();
-
-  return updated?.xp ?? null;
 }
