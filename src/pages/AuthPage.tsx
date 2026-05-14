@@ -54,8 +54,8 @@ export default function AuthPage() {
   useEffect(() => {
     const checkProfileAndRedirect = async (userId: string) => {
       // maybeSingle() returns null (not 406) when no row exists yet
-      const { data, error } = await supabase
-        .from('profiles')
+      const { data, error } = await (supabase
+        .from('profiles') as any)
         .select('username')
         .eq('id', userId)
         .maybeSingle();

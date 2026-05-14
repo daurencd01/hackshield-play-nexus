@@ -1,8 +1,10 @@
 import { Shield } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { 
-  getRank, getNextRank, getLevel, getLevelProgress, RANKS 
+  getRank, getLevel, getLevelProgress, getNextRank 
 } from "@/components/ui/StatusComponents";
+import { getXPToNextLevel, getXPForLevel } from "@/lib/progression";
+import { RANKS } from "@/lib/ranks";
 
 interface XpCardProps {
   xp: number;
@@ -13,7 +15,9 @@ export function XpCard({ xp }: XpCardProps) {
   const progress = getLevelProgress(xp);
   const rank = getRank(xp);
   const nextRank = getNextRank(xp);
-  const xpInLevel = xp % 1000;
+
+  const { current: xpInLevel, required: xpRequired } = getXPToNextLevel(xp);
+
 
   return (
     <div className="rounded-lg border border-border bg-card/50 p-4 space-y-3">
@@ -30,8 +34,8 @@ export function XpCard({ xp }: XpCardProps) {
 
       <div>
         <div className="mb-1 flex justify-between font-mono text-[10px] text-muted-foreground">
-          <span>{xpInLevel} / 1000 XP</span>
-          <span>{(1000 - xpInLevel).toLocaleString()} до уровня {level + 1}</span>
+          <span>{xpInLevel.toLocaleString()} / {xpRequired.toLocaleString()} XP</span>
+          <span>{(xpRequired - xpInLevel).toLocaleString()} до уровня {level + 1}</span>
         </div>
         <Progress value={progress} className="h-2" />
       </div>
@@ -53,17 +57,19 @@ export function XpCard({ xp }: XpCardProps) {
       <div className="flex gap-1 pt-1">
         {RANKS.map((r) => (
           <div
-            key={r.label}
-            className={`flex-1 rounded-sm py-0.5 text-center font-mono text-[8px] uppercase transition-all ${
-              xp >= r.minXp
-                ? "bg-primary/20 text-primary"
-                : "bg-muted/20 text-muted-foreground/40"
+            key={r.id}
+            title={r.name.ru}
+            className={`flex-1 rounded-sm py-1 text-center font-mono text-[8px] uppercase transition-all border ${
+              xp >= r.minXP
+                ? "bg-primary/20 text-primary border-primary/30"
+                : "bg-muted/10 text-muted-foreground/30 border-transparent"
             }`}
           >
-            {r.label[0]}
+            {r.icon}
           </div>
         ))}
       </div>
     </div>
   );
 }
+

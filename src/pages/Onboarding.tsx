@@ -49,8 +49,8 @@ export default function OnboardingPage() {
         }
 
         // Check if profile exists
-        const { data: profile } = await supabase
-          .from('profiles')
+        const { data: profile } = await (supabase
+          .from('profiles') as any)
           .select('username')
           .eq('id', session.user.id)
           .maybeSingle();
@@ -105,8 +105,8 @@ export default function OnboardingPage() {
         updated_at: new Date().toISOString()
       };
 
-      const { error: upsertError } = await supabase
-        .from('profiles')
+      const { error: upsertError } = await (supabase
+        .from('profiles') as any)
         .upsert(newProfile);
 
       if (upsertError) {

@@ -97,3 +97,95 @@
     pointer-events: none;
   }
 }
+
+@layer base {
+  /* Запрет масштабирования и смены ориентации жестами */
+  html, body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  /* Разрешаем выделение в input/textarea */
+  input, textarea {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  /* Safe area переменные */
+  :root {
+    --safe-top: env(safe-area-inset-top, 0);
+    --safe-bottom: env(safe-area-inset-bottom, 0);
+    --safe-left: env(safe-area-inset-left, 0);
+    --safe-right: env(safe-area-inset-right, 0);
+  }
+
+  /* Скролбар (тонкий, в стиле приложения) */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 136, 0.3);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 136, 0.5);
+  }
+
+  /* Убираем синюю подсветку при тапе на iOS */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Для кнопок: активное состояние при нажатии */
+  button {
+    -webkit-touch-callout: none;
+  }
+}
+
+@layer utilities {
+  /* Safe area utilities */
+  .pt-safe { padding-top: var(--safe-top); }
+  .pb-safe { padding-bottom: var(--safe-bottom); }
+  .pl-safe { padding-left: var(--safe-left); }
+  .pr-safe { padding-right: var(--safe-right); }
+
+  .h-screen-safe {
+    height: calc(100vh - var(--safe-top) - var(--safe-bottom));
+    height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  }
+
+  /* Анимация при тапе */
+  .tap-scale {
+    @apply active:scale-95 transition-transform;
+  }
+
+  /* Glassmorphism */
+  .glass {
+    @apply bg-black/60 backdrop-blur-xl border border-white/10;
+  }
+
+  .glass-cyber {
+    @apply bg-black/70 backdrop-blur-xl border border-[#00ff88]/30;
+  }
+  
+  .text-cyber-green {
+    color: #00ff88;
+  }
+  
+  .bg-cyber-green {
+    background-color: #00ff88;
+  }
+  
+  .border-cyber-green {
+    border-color: #00ff88;
+  }
+}

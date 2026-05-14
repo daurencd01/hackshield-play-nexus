@@ -1,5 +1,6 @@
 import { ROOM_PROGRESSION } from './russianTasks';
 import { getTaskForRoom, RoomTask } from './russianTasks';
+import { Quiz } from '@/types/quiz';
 
 export type ObjectType = 
   | 'terminal' | 'firewall' | 'database' | 'router' | 'camera' | 'safe'
@@ -19,7 +20,7 @@ export interface GameObject {
   completed?: boolean;
   collected?: boolean;
   destroyed?: boolean;
-  task?: RoomTask;
+  task?: Quiz | RoomTask;
   damage?: number;
   damageInterval?: number;
   lastDamageTime?: number;
@@ -58,7 +59,7 @@ export interface GameObject {
   alertedBy?: string;
 }
 
-export function generateRoomContent(roomIndex: number, canvasW: number, canvasH: number): GameObject[] {
+export function generateRoomContent(roomIndex: number, canvasW: number, canvasH: number, task?: Quiz | RoomTask): GameObject[] {
   const config = ROOM_PROGRESSION[roomIndex] || ROOM_PROGRESSION[0];
   const objects: GameObject[] = [];
   const centerX = canvasW / 2;
@@ -75,7 +76,7 @@ export function generateRoomContent(roomIndex: number, canvasW: number, canvasH:
     id: `terminal_${roomIndex}`, type: 'terminal',
     x: termX, y: termY, width: 60, height: 50, w: 60, h: 50,
     interactive: true, hacked: false, completed: false,
-    task: getTaskForRoom(roomIndex)
+    task: task || getTaskForRoom(roomIndex)
   });
 
   // Laser Ring around terminal for difficulty > 1

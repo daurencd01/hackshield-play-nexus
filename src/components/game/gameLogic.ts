@@ -136,6 +136,62 @@ export function updateStealth(gs: GS, dt: number, now: number) {
   }
 }
 
+export function updatePlayerMovement(gs: GS, dt: number) {
+  if (gs.modalOpen || gs.transitioning) {
+    gs.playerMoving = false;
+    return;
+  }
+
+  const speed = (gs.isCrouching ? 80 : 160) * gs.speedMultiplier;
+  let vx = 0;
+  let vy = 0;
+
+  if (gs.keys.up) vy -= 1;
+  if (gs.keys.down) vy += 1;
+  if (gs.keys.left) vx -= 1;
+  if (gs.keys.right) vx += 1;
+
+  if (vx !== 0 || vy !== 0) {
+    const mag = Math.hypot(vx, vy);
+    vx = (vx / mag) * speed;
+    vy = (vy / mag) * speed;
+    gs.playerMoving = true;
+    gs.playerDir = { x: vx / speed, y: vy / speed };
+  } else {
+    gs.playerMoving = false;
+  }
+
+  const nextX = gs.playerTarget.x + vx * dt;
+  const nextY = gs.playerTarget.y + vy * dt;
+
+  // Simple collision with walls
+  if (nextX > WALL && nextX < CW - WALL) gs.playerTarget.x = nextX;
+  if (nextY > WALL && nextY < CH - WALL) gs.playerTarget.y = nextY;
+}
+
+export function updateNearbyObject(gs: GS, dt: number) {
+  let closestIdx: number | null = null;
+  let minDist = INTERACT_DIST;
+
+  gs.objects.forEach((obj, idx) => {
+    // Only interact with non-completed tasks OR doors
+    if (obj.completed && obj.type !== 'door' && obj.type !== 'locked_door') return;
+    
+    const dx = gs.playerRender.x - (obj.x + (obj.width || 0) / 2);
+    const dy = gs.playerRender.y - (obj.y + (obj.height || 0) / 2);
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < minDist) {
+      minDist = dist;
+      closestIdx = idx;
+    }
+  });
+
+  gs.nearbyIdx = closestIdx;
+  gs.hintAlpha += (closestIdx !== null ? 1 : -1) * 5 * dt;
+  gs.hintAlpha = Math.max(0, Math.min(1, gs.hintAlpha));
+}
+
 function decayDetection(obj: GameObject, dt: number) {
   obj.detectionLevel = Math.max(0, (obj.detectionLevel || 0) - 15 * dt);
   if (obj.detectionLevel === 0) obj.detectionState = 'idle';

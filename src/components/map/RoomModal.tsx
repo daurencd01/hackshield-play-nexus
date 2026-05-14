@@ -4,7 +4,7 @@ import { Terminal, ChevronRight, CheckCircle, XCircle, RotateCcw, Loader2, X, Aw
 import { Button } from "@/components/ui/button";
 import { dataService } from "@/lib/dataService";
 import { addXp } from "@/hooks/useUser";
-import { ScenarioRoom } from "@/components/ScenarioMap";
+import { ScenarioRoom } from "@/types/game";
 import { XP_PER_ROOM } from "@/hooks/map/useMapEngine";
 
 type AnswerState = "idle" | "submitting" | "correct" | "wrong";

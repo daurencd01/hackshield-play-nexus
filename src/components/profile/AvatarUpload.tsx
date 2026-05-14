@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
-import { UserProfile } from "@/hooks/useUser";
+import { UserProfile } from "@/types/game";
 
 interface AvatarUploadProps {
   user: UserProfile;

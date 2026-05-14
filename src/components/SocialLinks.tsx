@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { UserProfile } from "@/hooks/useUser";
+import { UserProfile } from "@/types/game";
 
 // --- Inline SVG icons (avoids adding react-icons dependency) ---
 

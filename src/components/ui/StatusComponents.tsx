@@ -66,56 +66,37 @@ export function EmptyState({
   );
 }
 
-/** XP rank ladder — single source of truth for rank thresholds */
-export const RANKS = [
-  { label: "Newbie",   minXp: 0,    color: "text-muted-foreground" },
-  { label: "Analyst",  minXp: 500,  color: "text-accent" },
-  { label: "Hunter",   minXp: 1500, color: "text-secondary" },
-  { label: "Elite",    minXp: 3000, color: "text-neon-yellow" },
-  { label: "Legend",   minXp: 6000, color: "text-neon-pink" },
-] as const;
+import { getLevelFromXP, getXPToNextLevel } from "@/lib/progression";
+import { getRankByXP, getNextRank as getNextRankLib } from "@/lib/ranks";
 
-// Memoization caches
-const getRankCache = new Map<number, typeof RANKS[number]>();
-const getNextRankCache = new Map<number, typeof RANKS[number] | null>();
-const getLevelCache = new Map<number, number>();
-const getLevelProgressCache = new Map<number, number>();
-
+/** XP rank ladder — delegated to centralized lib */
 export function getRank(xp: number) {
-  if (getRankCache.has(xp)) return getRankCache.get(xp)!;
-  for (let i = RANKS.length - 1; i >= 0; i--) {
-    if (xp >= RANKS[i].minXp) {
-      getRankCache.set(xp, RANKS[i]);
-      return RANKS[i];
-    }
-  }
-  return RANKS[0];
+  const rank = getRankByXP(xp);
+  return {
+    label: rank.name.en,
+    color: rank.color,
+    minXp: rank.minXP
+  };
 }
 
 export function getNextRank(xp: number) {
-  if (getNextRankCache.has(xp)) return getNextRankCache.get(xp) ?? null;
-  for (const rank of RANKS) {
-    if (xp < rank.minXp) {
-      getNextRankCache.set(xp, rank);
-      return rank;
-    }
-  }
-  getNextRankCache.set(xp, null);
-  return null; // max rank
+  const next = getNextRankLib(xp);
+  if (!next) return null;
+  return {
+    label: next.name.en,
+    color: next.color,
+    minXp: next.minXP
+  };
 }
 
-/** Level derived from XP (every 1000 XP = 1 level) */
+/** Level derived from XP (progressive) */
 export function getLevel(xp: number) {
-  if (getLevelCache.has(xp)) return getLevelCache.get(xp)!;
-  const level = Math.floor(xp / 1000) + 1;
-  getLevelCache.set(xp, level);
-  return level;
+  return getLevelFromXP(xp);
 }
 
 /** Progress % to next level (0-100) */
 export function getLevelProgress(xp: number) {
-  if (getLevelProgressCache.has(xp)) return getLevelProgressCache.get(xp)!;
-  const progress = (xp % 1000) / 10;
-  getLevelProgressCache.set(xp, progress);
-  return progress;
+  const { progress } = getXPToNextLevel(xp);
+  return progress * 100;
 }
+

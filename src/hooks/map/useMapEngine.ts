@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { dataService } from "@/lib/dataService";
-import { ScenarioRoom } from "@/components/ScenarioMap";
+import { ScenarioRoom } from "@/types/game";
 
 export const XP_PER_ROOM = 50;
 

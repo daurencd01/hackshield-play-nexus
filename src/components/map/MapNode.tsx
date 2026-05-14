@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { CheckCircle, Lock, Terminal } from "lucide-react";
-import { ScenarioRoom } from "@/components/ScenarioMap";
+import { ScenarioRoom } from "@/types/game";
 
 export type NodeState = "completed" | "current" | "locked";
 

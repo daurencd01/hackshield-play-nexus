@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Clock, Lightbulb, ChevronRight, Terminal, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { missionScenario, scenarios } from "@/data/mockData";
-import { ScenarioStep } from "@/types/scenario";
+import { Scenario, ScenarioStep } from "@/types/scenario";
 import { useScenarioEngine } from "@/hooks/useScenarioEngine";
+import { LoadingScreen } from "./LoadingScreen";
 
 export interface ScenarioPlayerProps {
   missionId: string;
@@ -12,26 +13,34 @@ export interface ScenarioPlayerProps {
 }
 
 export default function ScenarioPlayer({ missionId, onComplete }: ScenarioPlayerProps) {
-  const [loading, setLoading] = useState(true);
-  const [initialSteps, setInitialSteps] = useState<ScenarioStep[]>([]);
-  const { state, dispatch } = useScenarioEngine(initialSteps);
+  const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null);
 
   // Load scenarios from mockData
   useEffect(() => {
     // try to find by category/id, else fallback to missionScenario
     const specificScenario = scenarios.find((s) => s.id === missionId);
-    const steps = specificScenario ? specificScenario.steps : missionScenario;
-    setInitialSteps(steps);
-    setLoading(false);
+    if (specificScenario) {
+      setCurrentScenario(specificScenario);
+    } else {
+      // Fallback
+      setCurrentScenario({
+        id: missionId,
+        title: "Сценарий",
+        description: "",
+        difficulty: "medium",
+        category: "network",
+        steps: missionScenario
+      });
+    }
   }, [missionId]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="font-mono text-sm text-muted-foreground">Загрузка сценария...</p>
-      </div>
-    );
+  const { state, dispatch } = useScenarioEngine(
+    currentScenario || { id: 'loading', title: '', description: '', difficulty: 'medium', category: 'network', steps: [] }, 
+    missionId
+  );
+
+  if (!currentScenario || state.steps.length === 0) {
+    return <LoadingScreen />;
   }
 
   if (state.isCompleted) {

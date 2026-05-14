@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useMapEngine, XP_PER_ROOM } from "@/hooks/map/useMapEngine";
+import { ScenarioRoom } from "@/types/game";
 import { MapNode, NodeState } from "@/components/map/MapNode";
 import { MapLine } from "@/components/map/MapLine";
 import { RoomModal } from "@/components/map/RoomModal";
@@ -9,15 +10,6 @@ import { RoomModal } from "@/components/map/RoomModal";
 const NODES_PER_ROW = 3;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-export interface ScenarioRoom {
-  id: string;
-  mission_id: string;
-  title: string;
-  task: string;
-  correct_answer: string;
-  order_index: number;
-}
-
 export interface ScenarioMapProps {
   missionId: string;
   userId: string;
@@ -72,10 +64,10 @@ export default function ScenarioMap({ missionId, userId, onComplete }: ScenarioM
                 <div key={room.id} className="flex flex-1 items-center">
                   <div className="flex flex-col items-center">
                     <MapNode
-                      room={room}
-                      index={globalIdx}
-                      state={nodeState}
-                      onClick={() => setOpenRoomIdx(globalIdx)}
+                       room={room}
+                       index={globalIdx}
+                       state={nodeState}
+                       onClick={() => setOpenRoomIdx(globalIdx)}
                     />
                   </div>
 
