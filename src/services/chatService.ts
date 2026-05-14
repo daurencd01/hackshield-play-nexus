@@ -1,5 +1,8 @@
-import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { createLogger } from '@/utils/logger';
+
+const log = createLogger('ChatService');
+
 
 export const MessageSchema = z.object({
   id: z.string().uuid(),
@@ -45,9 +48,10 @@ export const chatService = {
     });
 
     if (error) {
-      console.error('[Chat] Failed:', error);
+      log.error('Failed to get/create chat:', error);
       return null;
     }
+
     return data;
   },
 
@@ -97,9 +101,10 @@ export const chatService = {
 
       return chats;
     } catch (e) {
-      console.error('[Chat] Get my chats failed:', e);
+      log.error('Get my chats failed:', e);
       return [];
     }
+
   },
 
   async getMessages(chatId: string, limit = 50, before?: string): Promise<Message[]> {
@@ -121,9 +126,10 @@ export const chatService = {
 
       return (data || []).map(d => MessageSchema.parse(d)).reverse();
     } catch (e) {
-      console.error('[Chat] Get messages failed:', e);
+      log.error('Get messages failed:', e);
       return [];
     }
+
   },
 
   async sendMessage(
@@ -154,9 +160,10 @@ export const chatService = {
       if (error) throw error;
       return MessageSchema.parse(data);
     } catch (e) {
-      console.error('[Chat] Send failed:', e);
+      log.error('Send message failed:', e);
       return null;
     }
+
   },
 
   async markAsRead(chatId: string): Promise<void> {

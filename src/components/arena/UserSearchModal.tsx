@@ -4,13 +4,15 @@ import { Search, X, UserPlus, MessageCircle, Clock } from 'lucide-react';
 import { leaderboardService, type LeaderboardEntry } from '@/services/leaderboardService';
 import { friendsService } from '@/services/friendsService';
 import { chatService } from '@/services/chatService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast';
 
 export function UserSearchModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [statuses, setStatuses] = useState<Record<string, string>>({});
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,10 +43,19 @@ export function UserSearchModal({ onClose }: { onClose: () => void }) {
     const result = await friendsService.sendRequest(userId);
     if (result.success) {
       setStatuses(prev => ({ ...prev, [userId]: 'request_sent' }));
+      toast({
+        title: "Заявка отправлена",
+        description: "Запрос в друзья успешно отправлен."
+      });
     } else {
-      alert(result.error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: result.error || "Не удалось отправить заявку"
+      });
     }
   };
+
 
   const handleStartChat = async (userId: string) => {
     const chatId = await chatService.getOrCreateChat(userId);
@@ -106,16 +117,27 @@ export function UserSearchModal({ onClose }: { onClose: () => void }) {
               const status = statuses[user.id];
               return (
                 <div key={user.id} className="flex items-center gap-3 p-3 bg-gray-900/40 rounded-xl">
-                  <div className="w-10 h-10 rounded-full bg-cyber-green/20 border border-cyber-green flex items-center justify-center text-cyber-green font-mono">
+                  <Link 
+                    to={`/profile/${user.username || user.id}`} 
+                    onClick={onClose}
+                    className="w-10 h-10 rounded-full bg-cyber-green/20 border border-cyber-green flex items-center justify-center text-cyber-green font-mono hover:scale-105 transition-transform"
+                  >
                     {(user.username || '?')[0].toUpperCase()}
-                  </div>
+                  </Link>
 
                   <div className="flex-1 min-w-0">
-                    <div className="text-white font-mono text-sm truncate">{user.username}</div>
-                    <div className="text-xs text-gray-500">
+                    <Link 
+                      to={`/profile/${user.username || user.id}`}
+                      onClick={onClose}
+                      className="text-white font-mono text-sm truncate block hover:text-cyber-green"
+                    >
+                      {user.username}
+                    </Link>
+                    <div className="text-xs text-gray-500 uppercase font-mono tracking-tighter">
                       LVL {user.level} · {user.xp} XP
                     </div>
                   </div>
+
 
                   <div className="flex gap-2">
                     {status === 'self' ? (

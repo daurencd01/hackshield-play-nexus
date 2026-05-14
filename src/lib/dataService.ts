@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { safeStorage } from "@/utils/safeStorage";
 import { safeParseProfile, safeParseProgress, PlayerProfile } from "@/utils/validators";
-import { Player, currentPlayer, leaderboard, achievements, Achievement } from "@/data/mockData";
+import { Player, currentPlayer, leaderboard, achievements, Achievement } from "@/data/defaultData";
 
 const SUPABASE_TIMEOUT = 3000;
 
@@ -132,7 +132,7 @@ export const dataService = {
   },
 
   getScenarioRooms: async (missionId: string) => {
-    const { mockScenarioRooms } = await import("@/data/mockData");
+    const { mockScenarioRooms } = await import("@/data/defaultData");
     return mockScenarioRooms.filter(r => r.mission_id === missionId || r.mission_id === "m1");
   },
 

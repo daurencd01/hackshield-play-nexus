@@ -5,6 +5,7 @@ import { chatService, type Message } from '@/services/chatService';
 import { useUser } from '@/hooks/useUser';
 import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Props {
   chatId: string;
@@ -20,7 +21,9 @@ interface Props {
 
 export function ChatWindow({ chatId, otherUser, onBack }: Props) {
   const { user } = useUser();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
+
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -75,17 +78,51 @@ export function ChatWindow({ chatId, otherUser, onBack }: Props) {
   const handleSend = async () => {
     if (!input.trim() || sending) return;
 
-    setSending(true);
     const text = input.trim();
     setInput('');
+    
+    // Optimistic UI update
+    const tempId = crypto.randomUUID();
+    const tempMsg: Message = {
+      id: tempId,
+      chat_id: chatId,
+      sender_id: user?.id || '',
+      content: text,
+      message_type: 'text',
+      created_at: new Date().toISOString(),
+      is_read: false,
+      is_deleted: false,
+      is_edited: false
+    };
+
+    setMessages(prev => [...prev, tempMsg]);
+    
+    // Auto scroll
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }, 50);
 
     const res = await chatService.sendMessage(chatId, text);
-    if (!res) {
-      // Restore input on failure
+    
+    if (res) {
+      // Replace temp message with real one
+      setMessages(prev => prev.map(m => m.id === tempId ? res : m));
+    } else {
+      // Remove temp message and restore input on failure
+      setMessages(prev => prev.filter(m => m.id !== tempId));
       setInput(text);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось отправить сообщение"
+      });
     }
-    setSending(false);
   };
+
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

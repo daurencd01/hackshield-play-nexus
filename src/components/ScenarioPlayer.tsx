@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Clock, Lightbulb, ChevronRight, Terminal, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { missionScenario, scenarios } from "@/data/mockData";
+import { missionScenario, scenarios } from "@/data/defaultData";
 import { Scenario, ScenarioStep } from "@/types/scenario";
 import { useScenarioEngine } from "@/hooks/useScenarioEngine";
 import { LoadingScreen } from "./LoadingScreen";

@@ -1,5 +1,5 @@
 import { GameObject } from './roomGenerator';
-import { RoomTask } from './russianTasks';
+import { RoomTask } from './gameData';
 
 export interface InteractionResult {
   type: 'none' | 'health' | 'xp' | 'speed' | 'key' | 'open_task' | 'next_room' | 'locked';
