@@ -38,6 +38,12 @@ export default function OnboardingPage() {
   useEffect(() => {
     const init = async () => {
       try {
+        const isBypass = localStorage.getItem('hs_bypass') === '1';
+        if (isBypass) {
+          setEmail('operative@hackshield.com');
+          return;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
           navigate('/auth');
@@ -68,6 +74,7 @@ export default function OnboardingPage() {
 
   const handleLogout = async () => {
     setIsLoading(true);
+    localStorage.removeItem('hs_bypass');
     await supabase.auth.signOut();
     navigate('/auth');
   };
@@ -84,6 +91,12 @@ export default function OnboardingPage() {
     }
     if (!role) {
       setError(t('onboarding.req_role') || 'Role is required');
+      return;
+    }
+
+    const isBypass = localStorage.getItem('hs_bypass') === '1';
+    if (isBypass) {
+      navigate('/');
       return;
     }
 

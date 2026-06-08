@@ -43,7 +43,7 @@
       "chapter": "Глава {{chapter}}",
       "all": "Все миссии",
       "replay": "Переиграть",
-      "briefing": "Брифинг",
+      "briefing": "Briefing",
       "start": "🎯 НАЧАТЬ МИССИЮ",
       "completed": "МИССИЯ ЗАВЕРШЕНА"
     },
@@ -58,6 +58,86 @@
     },
     "common": {
       "back": "Назад"
+    },
+    "game": {
+      "alarm_triggered": "СИГНАЛИЗАЦИЯ СРАБОТАЛА",
+      "alarm_warning": "ОБНАРУЖЕНА УГРОЗА БЕЗОПАСНОСТИ",
+      "health": "ЗДОРОВЬЕ",
+      "cooldown": "ПЕРЕЗАРЯДКА",
+      "stunned": "ОГЛУШЕН",
+      "hacked": "ВЗЛОМАНО",
+      "hacking": "ВЗЛОМ...",
+      "exit_portal": "ТОЧКА ЭВАКУАЦИИ",
+      "keys_collected": "КЛЮЧЕЙ СОБРАНО",
+      "score": "СЧЁТ"
+    },
+    "quiz": {
+      "title": "ПРОВЕРКА ЗНАНИЙ",
+      "question": "ВОПРОС",
+      "correct": "ОТВЕТ ВЕРЕН!",
+      "incorrect": "ОТВЕТ НЕВЕРЕН",
+      "next": "СЛЕДУЮЩИЙ ВОПРОС",
+      "xp_reward": "+{{xp}} XP ПОЛУЧЕНО",
+      "finish": "ЗАВЕРШИТЬ ТЕСТ",
+      "submitting": "ОТПРАВКА ОТВЕТА...",
+      "hint": "ПОДСКАЗКА",
+      "time_left": "ВРЕМЯ:"
+    },
+    "multiplayer": {
+      "lobby_title": "КООПЕРАТИВНЫЙ ЛОББИ",
+      "create_room": "СОЗДАТЬ СЕССИЮ",
+      "join_room": "ПРИСОЕДИНИТЬСЯ",
+      "room_code": "КОД КОМНАТЫ",
+      "players_connected": "ИГРОКОВ В СЕТИ",
+      "waiting_host": "ОЖИДАНИЕ ХОСТА...",
+      "status_ready": "ГОТОВ",
+      "status_joined": "ПОДКЛЮЧИЛСЯ",
+      "leave_lobby": "ВЫЙТИ ИЗ ЛОББИ",
+      "connection_lost": "СОЕДИНЕНИЕ ПОТЕРЯНО"
+    },
+    "leaderboard": {
+      "global_title": "ТАБЛИЦА ЛИДЕРОВ",
+      "rank": "РАНГ",
+      "username": "ПОЛЬЗОВАТЕЛЬ",
+      "level": "УРОВЕНЬ",
+      "xp": "ОПЫТ (XP)",
+      "online": "В СЕТИ",
+      "offline": "ВНЕ СЕТИ",
+      "search_placeholder": "Поиск хакеров...",
+      "no_results": "Пользователи не найдены",
+      "my_rank": "МОЁ МЕСТО"
+    },
+    "profile": {
+      "edit": "РЕДАКТИРОВАТЬ ПРОФИЛЬ",
+      "bio": "О СЕБЕ",
+      "save": "СОХРАНИТЬ ИЗМЕНЕНИЯ",
+      "cancel": "ОТМЕНА",
+      "xp_needed": "ДО СЛЕДУЮЩЕГО УРОВНЯ ОСТАЛОСЬ {{xp}} XP",
+      "completed_missions_count": "ЗАВЕРШЕНО МИССИЙ",
+      "total_xp": "ВСЕГО ОПЫТА",
+      "created_at": "ЗАРЕГИСТРИРОВАН",
+      "role_admin": "АДМИНИСТРАТОР",
+      "role_operative": "ОПЕРАТИВНИК"
+    },
+    "dashboard": {
+      "welcome": "ДОБРО ПОЖАЛОВАТЬ",
+      "start_game": "Начать игру",
+      "simulator_sub": "2D Симулятор",
+      "missions": "Миссии",
+      "missions_sub": "12 доступно",
+      "arena": "Арена",
+      "arena_sub": "Топ оперативников",
+      "daily_title": "Ежедневный челлендж",
+      "daily_task": "Распознай 5 фишинговых писем",
+      "daily_reward": "Награда: +200 XP",
+      "btn_continue": "Продолжить",
+      "recent_activity": "Последняя активность",
+      "act_mission": "Миссия 'Фишинг 2.0' завершена",
+      "act_mission_time": "2 часа назад",
+      "act_badge": "Получен бейдж 'Форензик'",
+      "act_badge_time": "Вчера",
+      "act_rooms": "Пройдено 3 комнаты в 2D игре",
+      "act_rooms_time": "2 дня назад"
     }
   }
 }

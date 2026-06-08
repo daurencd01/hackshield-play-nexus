@@ -7,11 +7,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   error: string | null;
-  lastSyncAt: number | null;
 }
-
-const AUTH_TIMEOUT_MS = 5000;
-const LAST_LOGIN_KEY = 'hs_last_login_timestamp';
 
 export function useAuthSession() {
   const [state, setState] = useState<AuthState>({
@@ -19,203 +15,106 @@ export function useAuthSession() {
     user: null,
     loading: true,
     error: null,
-    lastSyncAt: null
   });
-
-  const updateLastLogin = useCallback(() => {
-    localStorage.setItem(LAST_LOGIN_KEY, Date.now().toString());
-  }, []);
-
-  const isSessionExpired = useCallback((): boolean => {
-    const lastLoginStr = localStorage.getItem(LAST_LOGIN_KEY);
-    if (!lastLoginStr) return false; // Не считаем просроченной, если данных нет
-
-    const lastLogin = parseInt(lastLoginStr, 10);
-    const now = Date.now();
-    const ageMs = now - lastLogin;
-    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-
-    return ageMs > TWENTY_FOUR_HOURS;
-  }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    const timeoutId = setTimeout(() => {
-      if (mounted && state.loading) {
-        console.warn('[Auth] Timeout — proceeding without session');
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: 'Auth timeout'
-        }));
-      }
-    }, AUTH_TIMEOUT_MS);
+    // 1. Get initial session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!mounted) return;
+      setState({
+        session,
+        user: session?.user ?? null,
+        loading: false,
+        error: error?.message ?? null,
+      });
+    });
 
-    // Проверяем сессию
-    const initAuth = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-
-        // Если сессия есть и прошло >24 часов — принудительно выходим
-        if (data.session && isSessionExpired()) {
-          console.log('[Auth] Session expired (>24h), signing out');
-          await supabase.auth.signOut();
-          localStorage.removeItem(LAST_LOGIN_KEY);
-          if (mounted) {
-            clearTimeout(timeoutId);
-            setState({
-              session: null,
-              user: null,
-              loading: false,
-              error: null,
-              lastSyncAt: Date.now()
-            });
-          }
-          return;
-        }
-
-        if (!mounted) return;
-        clearTimeout(timeoutId);
-
-        if (error) {
-          console.error('[Auth] Get session error:', error);
-          setState({
-            session: null,
-            user: null,
-            loading: false,
-            error: error.message,
-            lastSyncAt: Date.now()
-          });
-          return;
-        }
-
-        if (data.session) {
-          updateLastLogin();
-        }
-
-        setState({
-          session: data.session,
-          user: data.session?.user ?? null,
-          loading: false,
-          error: null,
-          lastSyncAt: Date.now()
-        });
-      } catch (err: any) {
-        if (!mounted) return;
-        clearTimeout(timeoutId);
-        console.error('[Auth] Init failed:', err);
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: err.message || 'Unknown error'
-        }));
-      }
-    };
-
-    initAuth();
-
-    // Подписка на изменения
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        if (!mounted) return;
-
-        console.log('[Auth] Event:', event);
-
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          updateLastLogin();
-        }
-
-        if (event === 'SIGNED_OUT') {
-          localStorage.removeItem(LAST_LOGIN_KEY);
-        }
-
-        setState({
-          session: currentSession,
-          user: currentSession?.user ?? null,
-          loading: false,
-          error: null,
-          lastSyncAt: Date.now()
-        });
-      }
-    );
+    // 2. Listen to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setState(prev => ({
+        ...prev,
+        session,
+        user: session?.user ?? null,
+        loading: false,
+        error: null,
+      }));
+    });
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, [isSessionExpired, updateLastLogin]);
+  }, []); // Empty deps — runs once on mount
 
+  // ── Sign In ─────────────────────────────────────────────────
   const signIn = useCallback(async (email: string, password: string) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { success: false as const, error: error.message };
+    return { success: true as const, session: data.session, user: data.user };
+  }, []);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+  // ── Sign Up ─────────────────────────────────────────────────
+  const signUp = useCallback(async (
+    email: string,
+    password: string,
+    username: string,
+    fullName: string,
+  ) => {
+    // Check username uniqueness before creating account
+    const { data: existing } = await (supabase.from('profiles') as any)
+      .select('id')
+      .eq('username', username.trim())
+      .maybeSingle();
 
-    if (error) {
-      setState(prev => ({ ...prev, loading: false, error: error.message }));
-      return { success: false, error: error.message };
+    if (existing) {
+      return { success: false as const, error: 'Этот никнейм уже занят. Выберите другой.' };
     }
-
-    updateLastLogin();
-    setState({
-      session: data.session,
-      user: data.user,
-      loading: false,
-      error: null,
-      lastSyncAt: Date.now()
-    });
-
-    return { success: true };
-  }, [updateLastLogin]);
-
-  const signUp = useCallback(async (email: string, password: string) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
 
     const { data, error } = await supabase.auth.signUp({
       email,
-      password
+      password,
+      options: {
+        // Passed to handle_new_user trigger → written to profiles
+        data: {
+          username: username.trim(),
+          full_name: fullName.trim(),
+        },
+        emailRedirectTo: `${window.location.origin}/auth`,
+      },
     });
 
-    if (error) {
-      setState(prev => ({ ...prev, loading: false, error: error.message }));
-      return { success: false, error: error.message };
-    }
+    if (error) return { success: false as const, error: error.message };
 
-    updateLastLogin();
-    setState({
-      session: data.session,
-      user: data.user,
-      loading: false,
-      error: null,
-      lastSyncAt: Date.now()
+    // Session is null when email confirmation is required
+    const needsConfirmation = !data.session;
+    return { success: true as const, needsConfirmation, user: data.user };
+  }, []);
+
+  // ── Verify OTP ───────────────────────────────────────────────
+  const verifyOtp = useCallback(async (email: string, token: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'signup',
     });
+    if (error) return { success: false as const, error: error.message };
+    return { success: true as const, session: data.session, user: data.user };
+  }, []);
 
-    return { success: true };
-  }, [updateLastLogin]);
-
+  // ── Sign Out ─────────────────────────────────────────────────
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem(LAST_LOGIN_KEY);
-    setState({
-      session: null,
-      user: null,
-      loading: false,
-      error: null,
-      lastSyncAt: Date.now()
-    });
   }, []);
 
   return {
     ...state,
+    isAuthenticated: !!state.session,
     signIn,
     signUp,
+    verifyOtp,
     signOut,
-    isAuthenticated: !!state.session
   };
 }

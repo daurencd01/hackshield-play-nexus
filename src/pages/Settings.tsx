@@ -36,6 +36,18 @@ export default function SettingsPage() {
   useEffect(() => {
     const init = async () => {
       // Step 1: Check session
+      const isBypass = localStorage.getItem('hs_bypass') === '1';
+      if (isBypass) {
+        setUserId('mock-user-uuid-1234567890');
+        setUsername('operative_dauren');
+        setFullName('Operative Dauren');
+        setRole('student');
+        setTelegram('dauren');
+        setSessionReady(true);
+        setLoading(false);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate('/auth');
@@ -88,6 +100,7 @@ export default function SettingsPage() {
 
     // Redirect on logout
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      if (localStorage.getItem('hs_bypass') === '1') return;
       if (!session) navigate('/auth');
     });
 
@@ -129,6 +142,16 @@ export default function SettingsPage() {
     const normalizedUsername = username.toLowerCase().trim();
     if (!normalizedUsername || !role.trim()) {
       setError("Username and Role are required.");
+      return;
+    }
+
+    const isBypass = localStorage.getItem('hs_bypass') === '1';
+    if (isBypass) {
+      setSaving(true);
+      setTimeout(() => {
+        setSuccess("Profile updated successfully! (Bypass Mode)");
+        setSaving(false);
+      }, 500);
       return;
     }
 

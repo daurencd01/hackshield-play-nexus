@@ -1,15 +1,12 @@
-import { useEffect, useRef } from 'react';
-import { GS, CW, CH } from './useGameState';
-import { renderObjects, renderPlayer, renderHUD } from './GameRenderers';
-import { updatePlayerMovement, updateNearbyObject, updateStealth, updateParticles, INTERACT_COOLDOWN } from './gameLogic';
+import { useEffect } from 'react';
+import { GS, CW, CH } from './constants';
+import { renderGame } from './GameRenderers';
+import { updatePhysics } from './gameLogic';
 
 export function useGameLoop(
   gs: React.MutableRefObject<GS>,
   canvasRef: React.RefObject<HTMLCanvasElement>,
-  phase: string,
-  roomIdx: number,
-  totalRooms: number,
-  totalXP: number
+  phase: string
 ) {
   useEffect(() => {
     if (phase !== "playing" || !canvasRef.current) return;
@@ -25,50 +22,30 @@ export function useGameLoop(
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let lastTime = performance.now();
+
     const tick = (nowMs: number) => {
-      const g = gs.current;
-      if (g.paused) {
-        g.rafId = requestAnimationFrame(tick);
-        return;
-      }
-
-      const now = nowMs / 1000;
-      if (!g.lastTime) g.lastTime = now;
-      const dt = Math.min(0.1, now - g.lastTime);
-      g.lastTime = now;
-
-      // Update player position
-      const lerp = 14;
-      g.playerRender.x += (g.playerTarget.x - g.playerRender.x) * lerp * dt;
-      g.playerRender.y += (g.playerTarget.y - g.playerRender.y) * lerp * dt;
-
-      // Interaction cooldown
-      if (g.interactCooldown > 0) g.interactCooldown -= dt;
-
-      // Logic
-      updatePlayerMovement(g, dt);
-      updateNearbyObject(g, dt);
-      updateStealth(g, dt, now);
-      updateParticles(g, dt);
-
-      // Render
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const gameState = gs.current;
       
-      // Floor grid
-      ctx.save(); ctx.scale(dpr, dpr);
-      ctx.strokeStyle = "#141c2e"; ctx.lineWidth = 1;
-      for (let x = 0; x < CW; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CH); ctx.stroke(); }
-      for (let y = 0; y < CH; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CW, y); ctx.stroke(); }
-      ctx.restore();
+      const dt = Math.min(0.1, (nowMs - lastTime) / 1000);
+      lastTime = nowMs;
 
-      renderObjects(ctx, dpr, g, now, dt);
-      renderPlayer(ctx, dpr, g, now, dt);
-      renderHUD(ctx, dpr, roomIdx, totalRooms, totalXP + g.sessionXp, now, g.health, g.maxHealth, g.hasKeyCard);
+      // 1. Physics & Logic
+      updatePhysics(gameState, dt);
 
-      g.rafId = requestAnimationFrame(tick);
+      // 2. Render Interpolation
+      const lerp = 15;
+      gameState.playerRender.x += (gameState.playerPos.x - gameState.playerRender.x) * lerp * dt;
+      gameState.playerRender.y += (gameState.playerPos.y - gameState.playerRender.y) * lerp * dt;
+
+      // 3. Render
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      renderGame(ctx, gameState, nowMs / 1000, dt);
+
+      gameState.rafId = requestAnimationFrame(tick);
     };
 
     gs.current.rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(gs.current.rafId);
-  }, [phase, canvasRef, gs, roomIdx, totalRooms, totalXP]);
+  }, [phase, canvasRef, gs]);
 }

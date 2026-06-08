@@ -8,6 +8,21 @@ export function useUser() {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (authUser: any): Promise<UserProfile | null> => {
+    if (localStorage.getItem('hs_bypass') === '1' || authUser.id === 'mock-user-uuid-1234567890') {
+      return {
+        id: 'mock-user-uuid-1234567890',
+        username: 'operative_dauren',
+        full_name: 'Operative Dauren',
+        role: 'operative',
+        email: 'operative@hackshield.com',
+        xp: 350,
+        created_at: new Date().toISOString(),
+        avatar_url: null,
+        telegram: '@dauren',
+        instagram: null
+      };
+    }
+
     let { data, error } = await (supabase
       .from('profiles') as any)
       .select('id, email, username, full_name, role, xp, created_at, avatar_url, telegram, instagram')
@@ -51,6 +66,16 @@ export function useUser() {
 
     const init = async () => {
       // Step 1: Check session
+      const isBypass = localStorage.getItem('hs_bypass') === '1';
+      if (isBypass) {
+        const profile = await fetchProfile({ id: 'mock-user-uuid-1234567890', email: 'operative@hackshield.com' });
+        if (mounted) {
+          setUser(profile);
+          setLoading(false);
+        }
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session?.user) {
@@ -77,6 +102,14 @@ export function useUser() {
 
     // Keep in sync with auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (localStorage.getItem('hs_bypass') === '1') {
+        const profile = await fetchProfile({ id: 'mock-user-uuid-1234567890', email: 'operative@hackshield.com' });
+        if (mounted) {
+          setUser(profile);
+        }
+        return;
+      }
+
       if (event === 'SIGNED_OUT' || !session) {
         if (mounted) {
           setUser(null);

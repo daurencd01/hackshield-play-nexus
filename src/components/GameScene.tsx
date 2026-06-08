@@ -1,355 +1,481 @@
-import { useEffect, useRef, useCallback, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Award, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { dataService } from "@/lib/dataService";
-import { addXp } from "@/hooks/useUser";
-import TaskModal from "./TaskModal";
-import { VirtualJoystick, ActionButtons } from "./TouchControls";
-import { FrequencyHack, MemoryHack } from "./HackingMinigames";
-import { haptic } from "@/utils/haptic";
+import React, { useEffect, useRef, useMemo, useState } from 'react';
+import { useGameState } from '@/hooks/useGameState';
+import { useGameAI } from '@/hooks/useGameAI';
+import { useGameCollision } from '@/hooks/useGameCollision';
+import { useMultiplayerSync } from '@/hooks/useMultiplayerSync';
+import { generateRoom } from '@/utils/roomGenerator';
+import { RoomConfig, Player, GameEvent } from '@/types/game';
+import { createLogger } from '@/utils/logger';
 
-import { useGameState, CW, CH, WALL } from './game/useGameState';
-import { useInputHandler } from './game/useInputHandler';
-import { useGameLoop } from './game/useGameLoop';
-import { SFX, addLog, spawnHackEffect, triggerAlarm, INTERACT_COOLDOWN, INTERACT_DIST } from './game/gameLogic';
-import { GameObject, ObjectType, generateRoomContent } from '@/data/roomGenerator';
-import { handleInteraction } from '@/data/interactionHandler';
-import { ROOM_PROGRESSION } from '@/data/gameData';
-import { useGameProgress } from '@/hooks/useGameProgress';
-import { useAuth } from '@/contexts/AuthContext';
-import { LoadingScreen } from './LoadingScreen';
-import { quizService } from '@/services/quizService';
-
-interface ScenarioRoom {
-  id: string; mission_id: string; title: string;
-  task: string; correct_answer: string; order_index: number;
-}
+const log = createLogger('GameScene');
 
 interface GameSceneProps {
-  missionId?: string;
-  userId?: string;
-  onComplete?: (totalXp: number) => void;
+    userId: string;
+    username: string;
+    sessionId?: string | null;
+    roomId: number;
+    mode: 'solo' | 'coop';
+    isHost: boolean;
+    onComplete?: (xp: number) => void;
 }
 
-export default function GameScene({ missionId = "m1", onComplete }: GameSceneProps) {
-  const { user } = useAuth();
-  const userId = user?.id || "u1";
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gs = useGameState();
-  const { progress, loading: progressLoading, saveProgress, completeRoom } = useGameProgress(missionId);
-
-  // React state
-  const [isMobile, setIsMobile] = useState(false);
-  const [hackingObj, setHackingObj] = useState<GameObject | null>(null);
-  const [rooms, setRooms] = useState<ScenarioRoom[]>([]);
-  const [roomIdx, setRoomIdx] = useState(0);
-  const [totalXP, setTotalXP] = useState(0);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [activeType, setActiveType] = useState<ObjectType | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const [phase, setPhase] = useState<"loading" | "playing" | "error">("loading");
-  
-  const joystickInput = useRef({ x: 0, y: 0 });
-
-  // Init mobile check
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Load Rooms and Sync Progress
-  useEffect(() => {
-    if (progressLoading) return;
-
-    const load = async () => {
-      try {
-        const rd = await dataService.getScenarioRooms(missionId);
-        if (!rd?.length) { setPhase("error"); return; }
-        setRooms(rd);
-        
-        // Initial room content
-        const startIdx = progress?.current_room_index || 0;
-        setRoomIdx(startIdx);
-        gs.current.roomIdx = startIdx;
-        
-        // Fetch Quiz for current room
-        const config = ROOM_PROGRESSION[startIdx] || ROOM_PROGRESSION[0];
-        const quizzes = await quizService.getByFilter({ difficulty: config.difficulty });
-        const roomQuiz = quizzes.length > 0 ? quizzes[Math.floor(Math.random() * quizzes.length)] : undefined;
-        
-        gs.current.objects = generateRoomContent(startIdx, CW, CH, roomQuiz);
-
-        if (progress) {
-          gs.current.health = progress.health;
-          gs.current.sessionXp = progress.session_xp;
-          gs.current.flags = progress.flags;
-          gs.current.hasKeyCard = progress.has_key_card;
-          setTotalXP(progress.total_xp_earned);
-        }
-
-        setPhase("playing");
-      } catch (err) {
-        console.error(err);
-        setPhase("error");
-      }
-    };
-    load();
-  }, [missionId, gs, progress, progressLoading]);
-
-  // Автосейв каждые 10 сек
-  useEffect(() => {
-    if (phase !== 'playing') return;
-
-    const interval = setInterval(() => {
-      saveProgress({
-        current_room_index: gs.current.roomIdx,
-        health: gs.current.health,
-        session_xp: gs.current.sessionXp,
-        flags: gs.current.flags,
-        has_key_card: gs.current.hasKeyCard
-      });
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [saveProgress, phase, gs]);
-
-  // Modals & Progress
-  const closeModal = () => {
-    gs.current.modalOpen = false;
-    setModalOpen(false);
-    setHackingObj(null);
-  };
-
-  const advanceRoom = useCallback(() => {
-    if (roomIdx >= rooms.length - 1) {
-      if (onComplete) onComplete(totalXP + gs.current.sessionXp);
-      addXp(userId, totalXP + gs.current.sessionXp);
-      return;
-    }
-
-    const nextIdx = roomIdx + 1;
-    const config = ROOM_PROGRESSION[nextIdx] || ROOM_PROGRESSION[ROOM_PROGRESSION.length - 1];
-    
-    gs.current.transitioning = true;
-    
-    // Save progress when moving to next room
-    completeRoom(roomIdx, gs.current.sessionXp);
-
-    // Prepare next room quiz
-    quizService.getByFilter({ difficulty: config.difficulty }).then(quizzes => {
-      const nextQuiz = quizzes.length > 0 ? quizzes[Math.floor(Math.random() * quizzes.length)] : undefined;
-      
-      setTimeout(() => {
-        setRoomIdx(nextIdx);
-        gs.current.roomIdx = nextIdx;
-        gs.current.objects = generateRoomContent(nextIdx, CW, CH, nextQuiz);
-        gs.current.playerTarget = gs.current.playerRender = { x: WALL + 40, y: CH / 2 };
-        gs.current.hasKeyCard = false;
-        gs.current.alarmActive = false;
-        gs.current.transitioning = false;
-      }, 400);
-    });
-  }, [roomIdx, rooms, totalXP, userId, onComplete, gs]);
-
-  const handleCorrect = useCallback(() => {
-    const g = gs.current;
-    const obj = g.objects.find(o => o.type === activeType && !o.completed);
-    if (obj) {
-      obj.completed = true;
-      obj.hacked = true;
-      spawnHackEffect(g, obj);
-      SFX.success(g);
-      if (obj.task) {
-        const reward = (obj.task as any).xpReward || (obj.task as any).xp_reward || 0;
-        setTotalXP(p => p + reward);
-        addLog(g, `TASK COMPLETED: +${reward} XP`, "#00ff88");
-      }
-    }
-
-    // Check if room cleared
-    const remaining = g.objects.filter(o => o.task && !o.completed);
-    if (remaining.length === 0) {
-      const door = g.objects.find(o => o.type === 'door' || o.type === 'locked_door');
-      if (door) {
-        door.completed = true;
-        g.doorOpenAnim = 0;
-        SFX.doorOpen(g);
-        addLog(g, "DOOR UNLOCKED", "#00ff88");
-      }
-    }
-    closeModal();
-  }, [activeType, gs]);
-
-  const triggerInteract = useCallback((ni: number) => {
-    const obj = gs.current.objects[ni];
-    const res = handleInteraction(obj, gs.current.hasKeyCard);
-    
-    if (res.type === 'open_task') {
-      SFX.interact(gs.current);
-      if (obj.type === 'camera') {
-        setHackingObj(obj);
-        gs.current.modalOpen = true;
-        setActiveType('camera');
-      } else {
-        gs.current.modalOpen = true;
-        gs.current.interactCooldown = INTERACT_COOLDOWN;
-        setActiveType(obj.type as any);
-        setModalOpen(true);
-      }
-    } else if (res.type === 'next_room') {
-      SFX.interact(gs.current);
-      advanceRoom();
-    }
-  }, [gs, advanceRoom]);
-
-  // Hooks
-  useInputHandler(gs, () => {
-    const ni = gs.current.nearbyIdx;
-    if (ni !== null) triggerInteract(ni);
-  }, isMobile, joystickInput);
-
-  useGameLoop(gs, canvasRef, phase, roomIdx, rooms.length, totalXP);
-
-  // Render Logic
-  if (phase === "loading" || progressLoading) {
-    return <LoadingScreen />;
-  }
-
-  if (phase === "error") {
-    return (
-      <div className="flex flex-col items-center justify-center h-[400px] bg-red-950/20 rounded-lg border border-red-500/20 p-8 text-center">
-        <X className="w-12 h-12 text-red-500 mb-4" />
-        <h3 className="font-orbitron text-lg text-red-400 mb-2">SYSTEM FAILURE</h3>
-        <p className="text-sm text-red-400/60 max-w-xs">Critical error in mission sequence. Connection lost.</p>
-        <Button onClick={() => window.location.reload()} variant="outline" className="mt-6 border-red-500/50 text-red-400 hover:bg-red-500/10">
-          REBOOT SYSTEM
-        </Button>
-      </div>
+const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, roomId, mode, isHost, onComplete }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const { gameState, gameStateRef, updateGameState } = useGameState(userId, roomId);
+    const { updateAI, guardPathsRef } = useGameAI();
+    const { resolveMovement, checkInteraction } = useGameCollision();
+    const { broadcastEvent } = useMultiplayerSync(
+        sessionId || null,
+        userId,
+        username,
+        isHost,
+        gameStateRef,
+        updateGameState
     );
-  }
 
-  const activeObj = gs.current?.objects.find(o => o.type === activeType && !o.completed && o.task);
-  const currentTask = activeObj?.task || null;
+    const room = useMemo(() => generateRoom(roomId), [roomId]);
+    const keys = useRef<Record<string, boolean>>({});
+    
+    // Состояния для Debug оверлея
+    const [showDebug, setShowDebug] = useState(false);
+    const showDebugRef = useRef<boolean>(false);
+    const [fps, setFps] = useState(60);
 
-  return (
-    <div className="flex flex-col items-center gap-4 relative">
-      <div className="relative group rounded-xl overflow-hidden border border-[#00ff88]/20 bg-black shadow-2xl w-full h-full">
-        <canvas
-          ref={canvasRef}
-          className="cursor-none block w-full h-full"
-          style={{
-            boxShadow: gs.current.alarmActive ? "0 0 40px rgba(255,0,0,0.15)" : "none"
-          }}
-        />
+    // Initialize Room
+    useEffect(() => {
+        const spawn = room.spawnPoints[mode === 'solo' ? 0 : (isHost ? 1 : 2)];
         
-        {/* Transition Overlay */}
-        <motion.div
-          animate={{ opacity: gs.current.transitioning ? 1 : 0 }}
-          className="absolute inset-0 bg-black z-50 pointer-events-none flex items-center justify-center"
-        >
-          <div className="text-[#00ff88] font-orbitron text-xl tracking-[0.5em] animate-pulse">
-            LOADING SECTOR...
-          </div>
-        </motion.div>
-      </div>
+        const localPlayer: Player = {
+            id: userId,
+            username,
+            position: { ...spawn },
+            velocity: { x: 0, y: 0 },
+            health: 100,
+            maxHealth: 100,
+            xp: 0,
+            isStealthMode: false,
+            isInVent: false,
+            isStunned: false,
+            stunUntil: 0,
+            empCharges: 1,
+            keycards: [],
+            facing: 0,
+            color: '#00ff00'
+        };
 
-      {/* Hacking Overlay */}
-      <AnimatePresence>
-        {hackingObj && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          >
-            <div className="max-w-md w-full">
-              {hackingObj.type === 'camera' ? (
-                <FrequencyHack
-                  onSuccess={() => {
-                    hackingObj.hacked = true;
-                    hackingObj.completed = true;
-                    SFX.success(gs.current);
-                    closeModal();
-                  }}
-                  onFail={() => {
-                    SFX.error(gs.current);
-                    triggerAlarm(gs.current, hackingObj.id);
-                    closeModal();
-                  }}
-                />
-              ) : (
-                <MemoryHack
-                  onSuccess={() => {
-                    hackingObj.hacked = true;
-                    hackingObj.completed = true;
-                    SFX.success(gs.current);
-                    closeModal();
-                  }}
-                  onFail={() => {
-                    SFX.error(gs.current);
-                    closeModal();
-                  }}
-                />
-              )}
+        const players = new Map<string, Player>();
+        players.set(userId, localPlayer);
+
+        updateGameState({
+            mode,
+            sessionId: sessionId || null,
+            isHost,
+            guards: room.guards.map((g, i) => ({ ...g, id: `guard-${i}` })),
+            cameras: room.cameras.map((c, i) => ({ ...c, id: `camera-${i}` })),
+            doors: room.doors.map((d, i) => ({ ...d, id: `door-${i}` })),
+            terminals: room.terminals.map((t, i) => ({ ...t, id: `terminal-${i}` })),
+            lasers: room.lasers.map((l, i) => ({ ...l, id: `laser-${i}` })),
+            players,
+            missionStatus: 'in_progress'
+        });
+    }, [room, userId, username, sessionId, mode, isHost]);
+
+    // Input Handling
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            keys.current[e.code] = true;
+            if (e.code === 'KeyE') handleInteract();
+            if (e.code === 'F3') {
+                e.preventDefault();
+                showDebugRef.current = !showDebugRef.current;
+                setShowDebug(showDebugRef.current);
+            }
+            if (e.code === 'ShiftLeft') updateGameState(prev => {
+                const players = new Map(prev.players);
+                const p = players.get(userId);
+                if (p) p.isStealthMode = true;
+                return { ...prev, players };
+            });
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            keys.current[e.code] = false;
+            if (e.code === 'ShiftLeft') updateGameState(prev => {
+                const players = new Map(prev.players);
+                const p = players.get(userId);
+                if (p) p.isStealthMode = false;
+                return { ...prev, players };
+            });
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
+
+    const handleInteract = () => {
+        const gs = gameStateRef.current;
+        const player = gs.players.get(userId);
+        if (!player) return;
+
+        const interaction = checkInteraction(gs, player);
+        if (!interaction) return;
+
+        switch (interaction.type) {
+            case 'terminal':
+                updateGameState({ showQuiz: true, activeHackTarget: interaction.target.id });
+                break;
+            case 'exit':
+                if (isHost) {
+                   broadcastEvent({ type: 'mission_complete' });
+                   updateGameState({ missionStatus: 'success' });
+                }
+                break;
+        }
+    };
+
+    // Game Loop
+    useEffect(() => {
+        let lastTime = performance.now();
+        let frameId: number;
+
+        let frameCount = 0;
+        let lastFpsUpdateTime = performance.now();
+
+        const loop = (time: number) => {
+            const dt = time - lastTime;
+            lastTime = time;
+
+            // Расчет FPS
+            frameCount++;
+            if (time - lastFpsUpdateTime >= 1000) {
+                const calculatedFps = Math.round((frameCount * 1000) / (time - lastFpsUpdateTime));
+                setFps(calculatedFps);
+                frameCount = 0;
+                lastFpsUpdateTime = time;
+            }
+
+            const gs = gameStateRef.current;
+            if (gs.missionStatus !== 'in_progress' || gs.showQuiz) {
+                frameId = requestAnimationFrame(loop);
+                return;
+            }
+
+            // 1. Local Player Movement
+            const player = gs.players.get(userId);
+            if (player && !player.isStunned) {
+                const speed = player.isStealthMode ? 1.5 : 3;
+                const dx = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0);
+                const dy = (keys.current['KeyS'] ? 1 : 0) - (keys.current['KeyW'] ? 1 : 0);
+                
+                if (dx !== 0 || dy !== 0) {
+                    const angle = Math.atan2(dy, dx);
+                    const desiredPos = {
+                        x: player.position.x + Math.cos(angle) * speed,
+                        y: player.position.y + Math.sin(angle) * speed
+                    };
+                    resolveMovement(player, desiredPos, room.walls, gs.doors);
+                    player.facing = angle;
+                    
+                    // Broadcast move (throttled inside useMultiplayerSync.ts to 20Hz / 50ms)
+                    broadcastEvent({
+                        type: 'player_move',
+                        userId,
+                        position: player.position,
+                        facing: player.facing
+                    });
+                }
+            }
+
+            // 2. AI Update (Host Only)
+            if (isHost) {
+                updateAI(gs, dt, room.walls, room.shadows);
+                // Broadcast AI state occasionally (e.g., every 5 frames)
+                if (Math.random() > 0.8) {
+                    broadcastEvent({ type: 'guard_update', guards: gs.guards });
+                    broadcastEvent({ type: 'camera_update', cameras: gs.cameras });
+                    broadcastEvent({ type: 'world_update', alarmState: gs.alarmState, detectionLevel: gs.detectionLevel });
+                }
+            }
+
+            // 3. Render
+            render();
+
+            frameId = requestAnimationFrame(loop);
+        };
+
+        const render = () => {
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext('2d');
+            if (!ctx || !canvas) return;
+
+            const gs = gameStateRef.current;
+
+            // Clear
+            ctx.fillStyle = room.backgroundColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Shadows
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            room.shadows.forEach(s => ctx.fillRect(s.x, s.y, s.w, s.h));
+
+            // Draw Walls
+            ctx.fillStyle = '#333';
+            room.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+
+            // Draw Doors
+            gs.doors.forEach(d => {
+                ctx.fillStyle = d.state === 'locked' ? '#f00' : (d.state === 'closed' ? '#888' : '#444');
+                ctx.fillRect(d.position.x, d.position.y, d.width, d.height);
+            });
+
+            // Draw Terminals
+            gs.terminals.forEach(t => {
+                ctx.fillStyle = t.isHacked ? '#0f0' : (t.isMainObjective ? '#0ff' : '#aaa');
+                ctx.fillRect(t.position.x - 10, t.position.y - 10, 20, 20);
+                if (!t.isHacked) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.strokeRect(t.position.x - 12, t.position.y - 12, 24, 24);
+                }
+            });
+
+            // Draw Exit
+            ctx.strokeStyle = '#0f0';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(room.exitPoint.x - 25, room.exitPoint.y - 25, 50, 50);
+
+            // Draw Guards FOV
+            gs.guards.forEach(g => {
+                ctx.fillStyle = g.state === 'chase' ? 'rgba(255, 0, 0, 0.2)' : 'rgba(255, 255, 0, 0.1)';
+                ctx.beginPath();
+                ctx.moveTo(g.position.x, g.position.y);
+                ctx.arc(g.position.x, g.position.y, g.visionRange, g.visionAngle - g.visionFOV/2, g.visionAngle + g.visionFOV/2);
+                ctx.fill();
+            });
+
+            // Draw Cameras FOV
+            gs.cameras.forEach(c => {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+                ctx.beginPath();
+                ctx.moveTo(c.position.x, c.position.y);
+                ctx.arc(c.position.x, c.position.y, c.visionRange, c.rotationAngle - c.visionFOV/2, c.rotationAngle + c.visionFOV/2);
+                ctx.fill();
+            });
+
+            // Draw Players
+            gs.players.forEach(p => {
+                ctx.save();
+                ctx.translate(p.position.x, p.position.y);
+                ctx.rotate(p.facing);
+                
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.beginPath(); ctx.arc(2, 2, 12, 0, Math.PI*2); ctx.fill();
+
+                // Body
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
+                
+                // Direction indicator
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(8, -2, 6, 4);
+                
+                ctx.restore();
+
+                // Name tag
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.username, p.position.x, p.position.y - 20);
+            });
+
+            // Draw Guards
+            gs.guards.forEach(g => {
+                ctx.fillStyle = g.state === 'chase' ? '#f00' : '#fa0';
+                ctx.beginPath(); ctx.arc(g.position.x, g.position.y, 10, 0, Math.PI*2); ctx.fill();
+            });
+
+            // O оверлей отладки (F3 Debug Overlay)
+            if (showDebugRef.current) {
+                // 1. Сетка перемещения (GRID 20px)
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.04)';
+                ctx.lineWidth = 1;
+                for (let x = 0; x < canvas.width; x += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < canvas.height; y += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+
+                // 2. Контуры стен / Препятствий
+                ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+                ctx.lineWidth = 1.5;
+                room.walls.forEach(w => {
+                    ctx.strokeRect(w.x - 1, w.y - 1, w.w + 2, w.h + 2);
+                });
+
+                // 3. Траектории движения ИИ охранников (A* пути)
+                gs.guards.forEach(g => {
+                    const cache = guardPathsRef.current?.get(g.id);
+                    if (cache && cache.path && cache.path.length > 0) {
+                        ctx.strokeStyle = '#00ffff';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(g.position.x, g.position.y);
+                        cache.path.forEach(pt => {
+                            ctx.lineTo(pt.x, pt.y);
+                        });
+                        ctx.stroke();
+
+                        // Конечная маркер-цель
+                        ctx.fillStyle = '#00ffff';
+                        ctx.beginPath();
+                        ctx.arc(cache.target.x, cache.target.y, 5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Название точки следования
+                        ctx.fillStyle = '#00ffff';
+                        ctx.font = '9px monospace';
+                        ctx.fillText(`Target (${Math.round(cache.target.x)}, ${Math.round(cache.target.y)})`, cache.target.x, cache.target.y - 8);
+                    }
+                });
+
+                // 4. Текстовые углы зрения для Камер и Охранников
+                ctx.fillStyle = '#fa0';
+                ctx.font = '9px monospace';
+                gs.guards.forEach((g, idx) => {
+                    ctx.fillText(`G-${idx} S:${g.state} A:${g.visionAngle.toFixed(2)} rad`, g.position.x, g.position.y + 20);
+                });
+                gs.cameras.forEach((c, idx) => {
+                    ctx.fillText(`C-${idx} A:${c.rotationAngle.toFixed(2)} rad`, c.position.x, c.position.y + 20);
+                });
+            }
+
+            // Draw UI Overlay (Alert)
+            if (gs.alarmState === 'triggered') {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#f00';
+                ctx.font = 'bold 24px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('ALARM ACTIVE', canvas.width / 2, 50);
+            }
+        };
+
+        frameId = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(frameId);
+    }, [isHost, userId, room]);
+
+    return (
+        <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden rounded-xl border border-white/10 shadow-2xl">
+            <canvas 
+                ref={canvasRef}
+                width={700}
+                height={500}
+                className="max-w-full max-h-full object-contain"
+            />
+            
+            {/* HUD */}
+            <div className="absolute top-4 left-4 pointer-events-none flex flex-col gap-2">
+                <div className="bg-black/60 backdrop-blur px-3 py-1 rounded border border-white/20 text-xs text-white">
+                    ROOM: {room.name}
+                </div>
+                <div className="bg-black/60 backdrop-blur px-3 py-1 rounded border border-white/20 text-xs text-cyan-400">
+                    DIFFICULTY: {room.difficulty.toUpperCase()}
+                </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Mobile Controls */}
-      {isMobile && (
-        <div className="fixed inset-0 pointer-events-none z-40">
-          <div className="pointer-events-auto">
-            <VirtualJoystick 
-              onMove={(dx, dy) => {
-                gs.current.keys.up = dy < -0.3;
-                gs.current.keys.down = dy > 0.3;
-                gs.current.keys.left = dx < -0.3;
-                gs.current.keys.right = dx > 0.3;
-              }}
-              onStop={() => {
-                gs.current.keys.up = false;
-                gs.current.keys.down = false;
-                gs.current.keys.left = false;
-                gs.current.keys.right = false;
-              }}
-            />
-            <ActionButtons
-              onAction={() => {
-                const ni = gs.current.nearbyIdx;
-                if (ni !== null) triggerInteract(ni);
-              }}
-              onCrouch={() => {
-                gs.current.isCrouching = !gs.current.isCrouching;
-                if ('vibrate' in navigator) navigator.vibrate(10);
-              }}
-              isCrouching={gs.current.isCrouching}
-              hasInteraction={gs.current.nearbyIdx !== null}
-            />
-          </div>
+            {/* F3 Cyberpunk Debug Panel */}
+            {showDebug && (
+                <div className="absolute top-4 right-4 bg-black/85 backdrop-blur-md p-4 rounded-lg border border-cyan-500/30 text-xs font-mono text-cyan-400 max-w-xs flex flex-col gap-2 z-50 pointer-events-none shadow-lg animate-fade-in shadow-cyan-500/10">
+                    <div className="text-cyan-300 font-bold border-b border-cyan-500/20 pb-1 flex justify-between items-center">
+                        <span>▸ NEXUS SYSTEM DEBUGR</span>
+                        <span className="text-[9px] bg-cyan-950 px-1 rounded border border-cyan-500/30 text-cyan-400">ACTIVE</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>FPS:</span>
+                        <span className="text-white font-semibold">{fps}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>PLAYERS:</span>
+                        <span className="text-white">{gameState.players.size}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>GUARDS:</span>
+                        <span className="text-white">{gameState.guards.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>CAMERAS:</span>
+                        <span className="text-white">{gameState.cameras.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>DOORS / TERM:</span>
+                        <span className="text-white">{gameState.doors.length} / {gameState.terminals.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>ALARM:</span>
+                        <span className={gameState.alarmState === 'triggered' ? 'text-red-400 font-bold animate-pulse' : 'text-green-400'}>
+                            {gameState.alarmState.toUpperCase()}
+                        </span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>MODE / HOST:</span>
+                        <span className="text-white">{gameState.mode.toUpperCase()} / {gameState.isHost ? 'TRUE' : 'FALSE'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>LOCAL X/Y:</span>
+                        <span className="text-white">
+                            {Math.round(gameState.players.get(userId)?.position.x || 0)}, {Math.round(gameState.players.get(userId)?.position.y || 0)}
+                        </span>
+                    </div>
+                    <div className="border-t border-cyan-500/20 pt-1 text-[9px] text-cyan-500/70 text-center">
+                        Press [F3] to toggle debug view
+                    </div>
+                </div>
+            )}
+
+            {/* Mission Status Overlays */}
+            {gameState.missionStatus === 'success' && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+                    <h2 className="text-4xl font-bold text-green-500 mb-4 tracking-tighter">MISSION ACCOMPLISHED</h2>
+                    <p className="text-white/60 mb-8">All objectives secured. Extraction successful.</p>
+                    <button 
+                        onClick={() => {
+                            if (onComplete) {
+                                onComplete(200);
+                            } else {
+                                window.location.reload();
+                            }
+                        }}
+                        className="px-8 py-3 bg-green-600 hover:bg-green-500 text-white rounded-full transition-all"
+                    >
+                        CONTINUE TO NEXT LEVEL
+                    </button>
+                </div>
+            )}
+
+            {/* Mission Status Overlays */}
+            {gameState.missionStatus === 'failed' && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+                    <h2 className="text-4xl font-bold text-red-500 mb-4 tracking-tighter">MISSION FAILED</h2>
+                    <p className="text-white/60 mb-8">{gameState.message || 'You were detected or compromised.'}</p>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        className="px-8 py-3 bg-red-600 hover:bg-red-500 text-white rounded-full transition-all"
+                    >
+                        RETRY MISSION
+                    </button>
+                </div>
+            )}
         </div>
-      )}
+    );
+};
 
-      {/* Task Modal */}
-      <AnimatePresence>
-        {modalOpen && currentTask && (
-          <TaskModal
-            room={currentTask}
-            roomIndex={roomIdx}
-            totalRooms={rooms.length}
-            userId={userId}
-            missionId={missionId}
-            isLast={roomIdx >= rooms.length - 1}
-            onCorrect={handleCorrect}
-            onClose={closeModal}
-            onSuccess={() => SFX.success(gs.current)}
-            onError={() => SFX.error(gs.current)}
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+export default GameScene;

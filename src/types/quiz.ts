@@ -1,48 +1,22 @@
 import { z } from 'zod';
 
-export const QuizOptionSchema = z.object({
+export const QuizQuestionSchema = z.object({
   id: z.string().uuid(),
-  quiz_id: z.string(),
-  text_ru: z.string(),
-  text_en: z.string().nullable().optional(),
-  text_kk: z.string().nullable().optional(),
-  is_correct: z.boolean(),
-  explanation_ru: z.string().nullable().optional(),
-  explanation_en: z.string().nullable().optional(),
-  explanation_kk: z.string().nullable().optional(),
-  order_index: z.number().int().default(0)
+  room_id: z.number().int(),
+  category: z.string(),
+  difficulty: z.enum(['easy', 'medium', 'hard', 'expert']),
+  question_text: z.string(),
+  options: z.array(z.string()),
+  correct_answer: z.number().int(),
+  explanation: z.string().nullable().optional(),
+  xp_reward: z.number().int().default(10),
+  time_limit_seconds: z.number().int().default(30),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 });
 
-export const QuizSchema = z.object({
-  id: z.string(),
-  category_id: z.string().nullable(),
-  type: z.enum(['multiple_choice', 'text_input', 'binary', 'sequence', 'code_input']),
-  difficulty: z.number().int().min(1).max(5),
+export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
 
-  title_ru: z.string(),
-  title_en: z.string().nullable().optional(),
-  title_kk: z.string().nullable().optional(),
-  description_ru: z.string(),
-  description_en: z.string().nullable().optional(),
-  description_kk: z.string().nullable().optional(),
-  hint_ru: z.string().nullable().optional(),
-  hint_en: z.string().nullable().optional(),
-  hint_kk: z.string().nullable().optional(),
-
-  correct_answer: z.string().nullable().optional(),
-  accept_variants: z.array(z.string()).default([]),
-  case_sensitive: z.boolean().default(false),
-  correct_choice: z.string().nullable().optional(),
-  correct_sequence: z.array(z.string()).default([]),
-
-  time_limit_seconds: z.number().int().nullable().optional(),
-  xp_reward: z.number().int().min(0),
-  penalty_on_fail: z.number().int().min(0).default(0),
-
-  tags: z.array(z.string()).default([]),
-
-  options: z.array(QuizOptionSchema).default([])
-});
-
-export type Quiz = z.infer<typeof QuizSchema>;
-export type QuizOption = z.infer<typeof QuizOptionSchema>;
+// Legacy support for other parts of the app if needed
+export const QuizSchema = QuizQuestionSchema;
+export type Quiz = QuizQuestion;

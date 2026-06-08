@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ScenarioProgressSchema, type ScenarioProgress } from '@/types/scenarioProgress';
 import { safeStorage } from '@/utils/safeStorage';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 10000;
 const LOCAL_FALLBACK_KEY = 'scenario_progress_local';
 
 async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
@@ -16,6 +16,8 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
 
 export const scenarioProgressService = {
   async getOrCreate(userId: string, missionId: string, scenarioId: string): Promise<ScenarioProgress> {
+    console.log(`[Scenario] Loading scenario state for mission ${missionId}`);
+    console.log(`[Scenario] Fetching for user ${userId} mission ${missionId} scenario ${scenarioId}`);
     try {
       const { data, error } = await withTimeout(
         supabase

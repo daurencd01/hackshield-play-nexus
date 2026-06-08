@@ -1,92 +1,142 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import GameScene from '@/components/GameScene';
-import { Button } from '@/components/ui/button';
-import { Play, Maximize2 } from 'lucide-react';
-import { useCanvasSize } from '@/hooks/useCanvasSize';
-import { OrientationOverlay } from '@/components/game/OrientationOverlay';
+import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Users, Terminal, Shield, Zap, ChevronLeft } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+type GameMode = 'none' | 'solo' | 'lobby' | 'in_game';
 
 export default function Game2DPage() {
-  const [started, setStarted] = useState(false);
-  const { width, height, isMobile } = useCanvasSize();
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mode, setMode] = useState<GameMode>('none');
+  const [session, setSession] = useState<{ id: string; code: string; isHost: boolean } | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const { toast } = useToast();
 
-  const enterFullscreen = async () => {
-    try {
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        await elem.requestFullscreen();
-      }
-      
-      if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
-        await (window.screen.orientation as any).lock('landscape').catch(() => {});
-      }
-      setIsFullscreen(true);
-    } catch (e) {
-      console.warn('Fullscreen/Orientation lock not supported');
-    }
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
+
+  const handleJoinSession = (sessionId: string, roomCode: string, isHost: boolean) => {
+    setSession({ id: sessionId, code: roomCode, isHost });
+    setMode('in_game');
+  };
+
+  const startSolo = () => {
+    setMode('in_game');
+    setSession(null);
   };
 
   return (
-    <Layout title="2D Симулятор" hideNav={started && isMobile}>
-      <div className={`
-        flex-1 flex flex-col items-center 
-        ${started && isMobile ? 'fixed inset-0 z-[60] bg-black' : 'p-4'}
-      `}>
+    <Layout title="HackShield Play Nexus" hideNav={mode === 'in_game'}>
+      <div className="flex-1 w-full flex flex-col bg-[#050505] text-white">
         
-        {!started && (
-          <div className="max-w-2xl w-full">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-cyber rounded-2xl p-8 text-center"
-            >
-              <div className="w-20 h-20 rounded-2xl bg-[#00ff88]/10 border-2 border-[#00ff88] flex items-center justify-center mx-auto mb-6 box-glow-green">
-                <Play className="w-10 h-10 text-[#00ff88] fill-[#00ff88]/20" />
-              </div>
+        {/* Main Selection Menu */}
+        {mode === 'none' && (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
               
-              <h1 className="font-orbitron text-2xl font-bold text-white mb-4 uppercase tracking-widest text-glow-blue">
-                2D Training Simulator
-              </h1>
-              
-              <div className="mb-8 font-mono text-sm text-gray-400 space-y-3">
-                <p>Добро пожаловать в симулятор кибербезопасности. Вам предстоит управлять оперативником, выполнять задания и взаимодействовать с виртуальными системами.</p>
-                <div className="pt-4 flex flex-wrap justify-center gap-4 text-[10px] uppercase tracking-widest">
-                  <span className="px-3 py-1 bg-white/5 rounded border border-white/10">⌨️ WASD / Стрелки</span>
-                  <span className="px-3 py-1 bg-white/5 rounded border border-white/10">🔘 Клавиша E</span>
+              {/* Solo Card */}
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                onClick={startSolo}
+                className="cursor-pointer bg-zinc-900/40 border border-white/5 p-10 rounded-[2.5rem] flex flex-col items-center text-center group hover:border-emerald-500/30 transition-all"
+              >
+                <div className="w-24 h-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+                  <Terminal className="w-12 h-12 text-emerald-400" />
                 </div>
-              </div>
+                <h2 className="text-3xl font-bold mb-4 tracking-tight">SINGLE PLAYER</h2>
+                <p className="text-zinc-500 mb-10 leading-relaxed">
+                  20 high-stakes missions. Infiltrate deep into corporate networks alone and test your stealth skills.
+                </p>
+                <div className="mt-auto flex gap-4 text-[10px] font-mono text-zinc-600 uppercase tracking-widest">
+                  <span>Offline Mode</span>
+                  <span>•</span>
+                  <span>Full Progression</span>
+                </div>
+              </motion.div>
 
-              <Button 
-                onClick={() => setStarted(true)}
-                className="w-full md:w-auto font-orbitron text-lg px-12 py-7 bg-[#00ff88] hover:bg-[#00ff88]/80 text-black shadow-[0_0_30px_rgba(0,255,136,0.4)] transition-all hover:scale-105 uppercase tracking-widest font-black"
+              {/* Multiplayer Card */}
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                onClick={() => setMode('lobby')}
+                className="cursor-pointer bg-zinc-900/40 border border-white/5 p-10 rounded-[2.5rem] flex flex-col items-center text-center group hover:border-cyan-500/30 transition-all"
               >
-                Запустить симуляцию
-              </Button>
-            </motion.div>
-          </div>
-        )}
+                <div className="w-24 h-24 bg-cyan-500/10 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-[0_0_50px_rgba(6,182,212,0.1)]">
+                  <Users className="w-12 h-12 text-cyan-400" />
+                </div>
+                <h2 className="text-3xl font-bold mb-4 tracking-tight">COOPERATIVE</h2>
+                <p className="text-zinc-500 mb-10 leading-relaxed">
+                  Join forces with another operative. Coordinate hacks, distract guards, and escape together.
+                </p>
+                <div className="mt-auto flex gap-4 text-[10px] font-mono text-zinc-600 uppercase tracking-widest">
+                  <span>Real-time Sync</span>
+                  <span>•</span>
+                  <span>Shared XP</span>
+                </div>
+              </motion.div>
 
-        {started && (
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-            {isMobile && !isFullscreen && (
-              <button
-                onClick={enterFullscreen}
-                className="absolute top-4 right-4 z-[70] flex items-center gap-2 px-4 py-2 bg-black/60 border border-[#00ff88]/40 text-[#00ff88] text-[10px] font-mono font-bold uppercase rounded-lg backdrop-blur-md active:bg-[#00ff88]/20"
-              >
-                <Maximize2 className="w-4 h-4" />
-                На весь экран
-              </button>
-            )}
-
-            <div className="relative" style={{ width: width || '100%', height: height || '100%' }}>
-              <GameScene />
             </div>
-
-            <OrientationOverlay />
           </div>
         )}
+
+        {/* Lobby View */}
+        {mode === 'lobby' && user && (
+          <div className="flex-1 flex flex-col items-center p-8">
+            <button 
+              onClick={() => setMode('none')}
+              className="self-start flex items-center gap-2 text-zinc-500 hover:text-white transition-colors mb-12"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              BACK TO MENU
+            </button>
+            <MultiplayerLobby userId={user.id} onJoin={handleJoinSession} />
+          </div>
+        )}
+
+        {/* Game Scene */}
+        {mode === 'in_game' && user && (
+          <div className="flex-1 relative flex flex-col">
+             {/* Header UI during game */}
+             <div className="p-4 flex items-center justify-between bg-black/40 backdrop-blur border-b border-white/5">
+                <div className="flex items-center gap-4">
+                   <button onClick={() => setMode('none')} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+                      <ChevronLeft className="w-5 h-5" />
+                   </button>
+                   <div className="h-6 w-px bg-white/10" />
+                   <div className="text-xs font-mono uppercase tracking-widest text-zinc-500">
+                      SESSION: <span className="text-white">{session?.code || 'LOCAL_SOLO'}</span>
+                   </div>
+                </div>
+                <div className="flex items-center gap-6">
+                   <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-emerald-400" />
+                      <div className="w-32 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                         <div className="h-full bg-emerald-500 w-[100%]" />
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-cyan-400" />
+                      <span className="text-xs font-mono text-cyan-400">XP: 2,450</span>
+                   </div>
+                </div>
+             </div>
+
+             <div className="flex-1 flex items-center justify-center p-4">
+                <GameScene 
+                  userId={user.id}
+                  username={user.email?.split('@')[0] || 'Operative'}
+                  sessionId={session?.id}
+                  roomId={0} // Start from tutorial
+                  mode={session ? 'coop' : 'solo'}
+                  isHost={session ? session.isHost : true}
+                />
+             </div>
+          </div>
+        )}
+
       </div>
     </Layout>
   );
