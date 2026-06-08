@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { GameProgressSchema, type GameProgress } from '@/types/gameProgress';
 import { safeStorage } from '@/utils/safeStorage';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 10000;
 const LOCAL_FALLBACK_KEY = 'game_progress_local';
 
 async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
@@ -199,5 +199,59 @@ export const gameProgressService = {
       console.warn('[gameProgress] Get all failed:', e);
       return [];
     }
+  },
+
+  /**
+   * Сохранить результат прохождения комнаты в лидерборд
+   */
+  async saveCompletion(params: {
+    userId: string;
+    roomId: number;
+    completionTime: number;
+    detectedCount: number;
+    hacksCompleted: number;
+    xpEarned: number;
+    wasCoop: boolean;
+    partnerUserId?: string;
+  }) {
+    try {
+      const { error } = await supabase.from('room_leaderboard').insert({
+        user_id: params.userId,
+        room_id: params.roomId,
+        completion_time_seconds: params.completionTime,
+        detected_count: params.detectedCount,
+        hacks_completed: params.hacksCompleted,
+        xp_earned: params.xpEarned,
+        was_coop: params.wasCoop,
+        partner_user_id: params.partnerUserId
+      });
+
+      if (error) throw error;
+      return true;
+    } catch (e) {
+      console.error('[gameProgress] Failed to save completion:', e);
+      return false;
+    }
+  },
+
+  /**
+   * Получить топ результатов для комнаты
+   */
+  async getLeaderboard(roomId: number, limit: number = 10) {
+    try {
+      const { data, error } = await supabase
+        .from('top_room_results')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('rank', { ascending: true })
+        .limit(limit);
+
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      console.error('[gameProgress] Failed to get leaderboard:', e);
+      return [];
+    }
   }
 };
+

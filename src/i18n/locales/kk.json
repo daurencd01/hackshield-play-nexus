@@ -58,6 +58,86 @@
     },
     "common": {
       "back": "Артқа"
+    },
+    "game": {
+      "alarm_triggered": "ДАБЫЛ ҚОСЫЛДЫ",
+      "alarm_warning": "ҚАУІПСІЗДІК БҰЗЫЛУЫ АНЫҚТАЛДЫ",
+      "health": "ДЕНСАУЛЫҚ",
+      "cooldown": "КҮТУ УАҚЫТЫ",
+      "stunned": "ЕСІНЕН ТАНДЫ",
+      "hacked": "БҰЗЫЛДЫ",
+      "hacking": "БҰЗУ КҮЙІ...",
+      "exit_portal": "ЭВАКУАЦИЯ НҮКТЕСІ",
+      "keys_collected": "КІЛТТЕР ЖИНАЛДЫ",
+      "score": "ҰПАЙ"
+    },
+    "quiz": {
+      "title": "БІЛІМДІ ТЕКСЕРУ",
+      "question": "СҰРАҚ",
+      "correct": "ДҰРЫС ЖАУАП!",
+      "incorrect": "ҚАТЕ ЖАУАП",
+      "next": "КЕЛЕСІ СҰРАҚ",
+      "xp_reward": "+{{xp}} XP АЛЫНДЫ",
+      "finish": "ТЕСТТІ АЯҚТАУ",
+      "submitting": "ЖАУАПТЫ ЖІБЕРУ...",
+      "hint": "НҰСҚАУ",
+      "time_left": "УАҚЫТТЫ КҮТУ:"
+    },
+    "multiplayer": {
+      "lobby_title": "КООПЕРАТИВТІ ЛОББИ",
+      "create_room": "СЕССИЯНЫ БАСТАУ",
+      "join_room": "ҚОСЫЛУ",
+      "room_code": "БӨЛМЕ КОДЫ",
+      "players_connected": "ОЙЫНШЫЛАР ЖЕЛІДЕ",
+      "waiting_host": "ХОСТТЫ КҮТУ...",
+      "status_ready": "ДАЙЫН",
+      "status_joined": "ҚОСЫЛДЫ",
+      "leave_lobby": "ЛОББИДЕН ШЫҒУ",
+      "connection_lost": "БАЙЛАНЫС ҮЗІЛДІ"
+    },
+    "leaderboard": {
+      "global_title": "ҮЗДІКТЕР ТЕПСЕСІ",
+      "rank": "РЕЙТИНГ",
+      "username": "ОЙЫНШЫ АТЫ",
+      "level": "ДЕҢГЕЙ",
+      "xp": "ТӘЖІРИБЕ (XP)",
+      "online": "ЖЕЛІДЕ",
+      "offline": "ЖЕЛІДЕН ТЫС",
+      "search_placeholder": "Хакерлерді іздеу...",
+      "no_results": "Ойыншылар табылмады",
+      "my_rank": "МЕНІҢ ОРНЫМ"
+    },
+    "profile": {
+      "edit": "ПРОФИЛЬДІ ӨҢДЕУ",
+      "bio": "ӨЗІ ТУРАЛЫ",
+      "save": "ӨЗГЕРІСТЕРДІ САҚТАУ",
+      "cancel": "БАС ТАРТУ",
+      "xp_needed": "КЕЛЕСІ ДЕҢГЕЙГЕ ДЕЙІН {{xp}} XP ҚАЛДЫ",
+      "completed_missions_count": "МИССИЯЛАР АЯҚТАЛДЫ",
+      "total_xp": "БАРЛЫҚ ОПЫТ",
+      "created_at": "ТІРКЕЛДІ",
+      "role_admin": "ӘКІМШІ",
+      "role_operative": "ОПЕРАТИВНИК"
+    },
+    "dashboard": {
+      "welcome": "ҚОШ КЕЛДІҢІЗ",
+      "start_game": "Ойынды бастау",
+      "simulator_sub": "2D Симулятор",
+      "missions": "Миссиялар",
+      "missions_sub": "12 қолжетімді",
+      "arena": "Арена",
+      "arena_sub": "Үздік оперативтер",
+      "daily_title": "Күнделікті челлендж",
+      "daily_task": "5 фишингтік хатты анықта",
+      "daily_reward": "Марапат: +200 XP",
+      "btn_continue": "Жалғастыру",
+      "recent_activity": "Соңғы белсенділік",
+      "act_mission": "'Фишинг 2.0' миссиясы аяқталды",
+      "act_mission_time": "2 сағат бұрын",
+      "act_badge": "'Форензик' белгісі алынды",
+      "act_badge_time": "Кеше",
+      "act_rooms": "2D ойында 3 бөлме өтілді",
+      "act_rooms_time": "2 күн бұрын"
     }
   }
 }

@@ -4,14 +4,17 @@ import { motion } from "framer-motion";
 import { missions } from "@/data/defaultData";
 import ScenarioPlayer from "@/components/ScenarioPlayer";
 import GameHeader from "@/components/GameHeader";
+import GameScene from "@/components/GameScene";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ArrowLeft, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/contexts/AuthContext";
 
 import NotFound from "./NotFound";
 
 export default function MissionPlayPage() {
+  const { user } = useAuth();
   const { t } = useTranslation() as any;
   const { id } = useParams();
   const navigate = useNavigate();
@@ -71,7 +74,24 @@ export default function MissionPlayPage() {
 
         {started && !completed && (
           <ErrorBoundary>
-            <ScenarioPlayer missionId={missionId} onComplete={handleComplete} />
+            {mission.type === "simulation" ? (
+              user ? (
+                <GameScene 
+                  userId={user.id} 
+                  username={user.email?.split("@")[0] || "Operative"}
+                  roomId={parseInt(missionId.replace("m", ""), 10) - 1} 
+                  mode="solo"
+                  isHost={true}
+                  onComplete={handleComplete} 
+                />
+              ) : (
+                <div className="text-center font-mono text-xs text-muted-foreground p-8">
+                  INITIALIZING SECURE SESSION...
+                </div>
+              )
+            ) : (
+              <ScenarioPlayer missionId={missionId} onComplete={handleComplete} />
+            )}
           </ErrorBoundary>
         )}
 

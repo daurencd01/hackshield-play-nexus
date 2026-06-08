@@ -1,4 +1,4 @@
-export type Difficulty = "easy" | "medium" | "hard" | "legendary";
+export type Difficulty = "easy" | "medium" | "hard" | "expert" | "legendary";
 
 export interface Mission {
   id: string;
@@ -8,6 +8,7 @@ export interface Mission {
   xpReward: number;
   status: "locked" | "available" | "in-progress" | "completed";
   chapter: number;
+  type: "simulation" | "scenario";
   icon: string;
   briefing: string;
 }

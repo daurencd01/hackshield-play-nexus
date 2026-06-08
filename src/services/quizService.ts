@@ -1,163 +1,211 @@
 import { supabase } from '@/integrations/supabase/client';
-import { QuizSchema, type Quiz } from '@/types/quiz';
-import { safeStorage } from '@/utils/safeStorage';
+import { createLogger } from '@/utils/logger';
 
-const TIMEOUT_MS = 5000;
-const CACHE_KEY = 'quizzes_cache';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 часа
+const log = createLogger('Quiz');
 
-interface QuizCache {
-  data: Quiz[];
-  timestamp: number;
+export interface QuizQuestion {
+  id: string;
+  room_id: number;
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  question_text: string;
+  options: string[];
+  correct_answer: number;
+  explanation: string;
+  xp_reward: number;
+  time_limit_seconds: number;
+  hint?: string;
+  source?: string;
 }
 
-async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
-  return Promise.race([
-    Promise.resolve(promise),
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Timeout')), ms)
-    )
-  ]);
+export interface QuizAnswer {
+  success: boolean;
+  is_correct?: boolean;
+  correct_answer?: number;
+  xp_earned?: number;
+  explanation?: string;
+  message: string;
 }
+
+export interface QuizStats {
+  total_answered: number;
+  correct_answers: number;
+  accuracy_percent: number;
+  total_xp: number;
+  avg_time: number;
+}
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const quizCache: Record<number, { data: QuizQuestion[], timestamp: number }> = {};
 
 export const quizService = {
   /**
-   * Получить все квизы (с кэшированием)
+   * Fetch quizzes for a specific room with TTL cache
    */
-  async getAll(forceRefresh = false): Promise<Quiz[]> {
-    // Проверяем кэш
-    if (!forceRefresh) {
-      const cached = safeStorage.get<QuizCache | null>(
-        CACHE_KEY,
-        (raw) => raw as QuizCache,
-        null
-      );
-
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-        console.log('[Quiz] Loaded from cache');
-        return cached.data;
-      }
+  async fetchQuizzesByRoom(roomId: number): Promise<QuizQuestion[]> {
+    const now = Date.now();
+    if (quizCache[roomId] && (now - quizCache[roomId].timestamp < CACHE_TTL)) {
+      log.info(`[Quiz] Loaded room ${roomId} from cache`);
+      return quizCache[roomId].data;
     }
 
     try {
-      // Загружаем из Supabase
-      const { data, error } = await withTimeout(
-        supabase
-          .from('quizzes')
-          .select(`
-            *,
-            options:quiz_options(*)
-          `)
-          .eq('is_published', true)
-          .order('difficulty', { ascending: true }),
-        TIMEOUT_MS
-      );
+      log.info(`[Quiz] Fetching questions for room ${roomId}...`);
+      const { data, error } = await supabase
+        .from('quiz_questions')
+        .select('*')
+        .eq('room_id', roomId);
 
       if (error) throw error;
 
-      const quizzes = (data || []).map(d => {
-        // Сортируем варианты по order_index
-        if (d.options) {
-          d.options.sort((a: any, b: any) => a.order_index - b.order_index);
-        }
-        return QuizSchema.parse(d);
-      });
-
-      // Кэшируем
-      safeStorage.set(CACHE_KEY, {
-        data: quizzes,
-        timestamp: Date.now()
-      });
-
-      console.log(`[Quiz] Loaded ${quizzes.length} quizzes from Supabase`);
-      return quizzes;
+      const questions = data as QuizQuestion[];
+      quizCache[roomId] = { data: questions, timestamp: now };
+      
+      log.info(`[Quiz] Successfully loaded ${questions.length} questions for room ${roomId}`);
+      return questions;
     } catch (e) {
-      console.error('[Quiz] Load failed:', e);
-
-      // Возвращаем из кэша даже устаревшего
-      const cached = safeStorage.get<QuizCache | null>(
-        CACHE_KEY,
-        (raw) => raw as QuizCache,
-        null
-      );
-      if (cached) {
-        console.warn('[Quiz] Using stale cache');
-        return cached.data;
-      }
-
+      log.error(`[Quiz] Failed to fetch quizzes for room ${roomId}:`, e);
       return [];
     }
   },
 
   /**
-   * Получить квиз по ID
+   * Fetch quizzes by filter (difficulty, category)
    */
-  async getById(quizId: string): Promise<Quiz | null> {
-    const all = await this.getAll();
-    return all.find(q => q.id === quizId) || null;
+  async getByFilter(options: { difficulty?: string | number; category?: string }): Promise<QuizQuestion[]> {
+    try {
+      let query = supabase.from('quiz_questions').select('*');
+      if (options.category) {
+        query = query.eq('category', options.category);
+      }
+      if (options.difficulty !== undefined) {
+        const diffMap: Record<number, 'easy' | 'medium' | 'hard' | 'expert'> = {
+          0: 'easy',
+          1: 'medium',
+          2: 'hard',
+          3: 'expert'
+        };
+        const diffStr = typeof options.difficulty === 'number' 
+          ? (diffMap[options.difficulty] || 'easy')
+          : options.difficulty;
+        query = query.eq('difficulty', diffStr);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as QuizQuestion[];
+    } catch (e) {
+      log.error('[Quiz] Failed to fetch quizzes by filter:', e);
+      return [];
+    }
   },
 
   /**
-   * Получить квиз по сложности и категории
+   * Fetch quizzes that the user hasn't answered yet in this room
    */
-  async getByFilter(filter: {
-    difficulty?: number;
-    category?: string;
-    randomize?: boolean;
-  }): Promise<Quiz[]> {
-    const all = await this.getAll();
-    let filtered = all;
+  async fetchUnansweredQuizzes(roomId: number, userId: string): Promise<QuizQuestion[]> {
+    try {
+      log.info(`[Quiz] Fetching unanswered questions for user ${userId} in room ${roomId}...`);
+      
+      // 1. Get all questions for room
+      const allQuestions = await this.fetchQuizzesByRoom(roomId);
+      
+      // 2. Get answered IDs from user_progress
+      const { data: answered, error } = await supabase
+        .from('user_progress')
+        .select('quiz_question_id')
+        .eq('user_id', userId)
+        .eq('room_id', roomId);
 
-    if (filter.difficulty !== undefined) {
-      filtered = filtered.filter(q => q.difficulty === filter.difficulty);
-    }
-    if (filter.category) {
-      filtered = filtered.filter(q => q.category_id === filter.category);
-    }
-    if (filter.randomize) {
-      filtered = [...filtered].sort(() => Math.random() - 0.5);
-    }
+      if (error) throw error;
 
-    return filtered;
+      const answeredIds = new Set((answered || []).map(a => a.quiz_question_id));
+      const unanswered = allQuestions.filter(q => !answeredIds.has(q.id));
+
+      log.info(`[Quiz] Found ${unanswered.length} unanswered questions out of ${allQuestions.length}`);
+      return unanswered;
+    } catch (e) {
+      log.error('[Quiz] Failed to fetch unanswered quizzes:', e);
+      return [];
+    }
   },
 
   /**
-   * Очистить кэш
+   * Submit quiz answer via RPC
    */
-  clearCache() {
-    safeStorage.remove(CACHE_KEY);
+  async submitQuizAnswer(
+    userId: string, 
+    questionId: string, 
+    roomId: number, 
+    selectedAnswer: number, 
+    timeSpent: number
+  ): Promise<QuizAnswer> {
+    try {
+      log.info(`[Quiz] Submitting answer for Q:${questionId} by U:${userId}...`);
+      
+      const { data, error } = await supabase.rpc('submit_quiz_answer', {
+        p_user_id: userId,
+        p_quiz_question_id: questionId,
+        p_room_id: roomId,
+        p_selected_answer: selectedAnswer,
+        p_time_spent: timeSpent
+      });
+
+      if (error) throw error;
+
+      log.info(`[Quiz] Submission result:`, data);
+      return data as QuizAnswer;
+    } catch (e) {
+      log.error('[Quiz] Submission failed:', e);
+      return { success: false, message: 'Internal server error' };
+    }
   },
 
   /**
-   * Проверить ответ
+   * Fetch quiz stats for a user
    */
-  checkAnswer(quiz: Quiz, userAnswer: any): boolean {
-    switch (quiz.type) {
-      case 'multiple_choice': {
-        const correctOption = quiz.options.find(o => o.is_correct);
-        return correctOption?.id === userAnswer;
+  async fetchQuizStats(userId: string, roomId?: number): Promise<QuizStats | null> {
+    try {
+      let query = supabase
+        .from('user_quiz_stats')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (roomId !== undefined) {
+        query = query.eq('room_id', roomId);
       }
 
-      case 'text_input': {
-        if (!quiz.correct_answer) return false;
-        const normalize = (s: string) =>
-          quiz.case_sensitive ? s.trim() : s.trim().toLowerCase();
+      const { data, error } = await query;
+      if (error) throw error;
 
-        const expected = [quiz.correct_answer, ...quiz.accept_variants].map(normalize);
-        const got = normalize(String(userAnswer));
-        return expected.includes(got);
-      }
+      if (!data || data.length === 0) return null;
 
-      case 'binary':
-        return quiz.correct_choice === userAnswer;
+      // If multiple rooms and no specific roomId, we might need to aggregate or just return the first
+      return data[0] as QuizStats;
+    } catch (e) {
+      log.error('[Quiz] Failed to fetch stats:', e);
+      return null;
+    }
+  },
 
-      case 'sequence': {
-        if (!Array.isArray(userAnswer)) return false;
-        return JSON.stringify(quiz.correct_sequence) === JSON.stringify(userAnswer);
-      }
+  /**
+   * Get a random unanswered question
+   */
+  async getRandomQuestion(roomId: number, userId: string): Promise<QuizQuestion | null> {
+    const unanswered = await this.fetchUnansweredQuizzes(roomId, userId);
+    if (unanswered.length === 0) return null;
+    return unanswered[Math.floor(Math.random() * unanswered.length)];
+  },
 
-      default:
-        return false;
+  /**
+   * Invalidate cache
+   */
+  invalidateQuizCache(roomId?: number) {
+    if (roomId !== undefined) {
+      delete quizCache[roomId];
+      log.info(`[Quiz] Cache invalidated for room ${roomId}`);
+    } else {
+      Object.keys(quizCache).forEach(key => delete quizCache[Number(key)]);
+      log.info('[Quiz] All quiz cache invalidated');
     }
   }
 };

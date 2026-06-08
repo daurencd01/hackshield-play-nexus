@@ -1,52 +1,65 @@
-import { useEffect } from 'react';
-import { GS } from './useGameState';
+import { useEffect, useRef } from 'react';
+import { GS } from './constants';
 
 export function useInputHandler(
   gs: React.MutableRefObject<GS>, 
   onInteract: () => void,
-  isMobile: boolean,
-  joystickInput: React.MutableRefObject<{ x: number; y: number }>
+  onFullscreen?: () => void,
+  onRespawn?: () => void
 ) {
-  useEffect(() => {
-    const map: Record<string, "up"|"down"|"left"|"right"> = {
-      ArrowUp:"up",    KeyW:"up",    w:"up",    W:"up",    ц:"up",    Ц:"up",
-      ArrowDown:"down",  KeyS:"down",  s:"down",  S:"down",  ы:"down",  Ы:"down",
-      ArrowLeft:"left",  KeyA:"left",  a:"left",  A:"left",  ф:"left",  Ф:"left",
-      ArrowRight:"right", KeyD:"right", d:"right", D:"right", в:"right", В:"right",
-    };
-    const interactCodes = new Set(["KeyE", "e", "E", "у", "У"]);
-    const crouchCodes = new Set(["ControlLeft", "ControlRight", "KeyC", "c", "C", "с", "С"]);
+  const interactPressed = useRef(false);
 
-    const down = (e: KeyboardEvent) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const k = gs.current.keys;
       const key = e.key.toLowerCase();
-      const code = e.code;
-      const k = map[code] || map[key] || map[e.key];
-      if (k) { e.preventDefault(); gs.current.keys[k] = true; }
-      
-      if (interactCodes.has(code) || interactCodes.has(key) || interactCodes.has(e.key)) {
-        if (!gs.current.modalOpen && gs.current.interactCooldown <= 0) {
-          onInteract();
+
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'e', ' ', 'f', 'r'].includes(key)) {
+        // Only prevent default if we are not in an input field (though currently there are none in the game scene)
+        if (e.target instanceof HTMLBodyElement || e.target instanceof HTMLCanvasElement) {
+          e.preventDefault();
         }
       }
 
-      if (crouchCodes.has(code) || crouchCodes.has(key) || crouchCodes.has(e.key)) {
-        gs.current.isCrouching = true;
+      switch (key) {
+        case 'w': case 'arrowup': k.up = true; break;
+        case 's': case 'arrowdown': k.down = true; break;
+        case 'a': case 'arrowleft': k.left = true; break;
+        case 'd': case 'arrowright': k.right = true; break;
+        case 'f': if (onFullscreen) onFullscreen(); break;
+        case 'r': if (onRespawn) onRespawn(); break;
+        case 'e': case ' ':
+          if (!interactPressed.current) {
+            k.interact = true;
+            interactPressed.current = true;
+            onInteract();
+          }
+          break;
       }
     };
 
-    const up = (e: KeyboardEvent) => {
-      const k = map[e.code] || map[e.key.toLowerCase()] || map[e.key];
-      if (k) gs.current.keys[k] = false;
-      if (crouchCodes.has(e.code) || crouchCodes.has(e.key.toLowerCase())) {
-        gs.current.isCrouching = false;
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const k = gs.current.keys;
+      const key = e.key.toLowerCase();
+
+      switch (key) {
+        case 'w': case 'arrowup': k.up = false; break;
+        case 's': case 'arrowdown': k.down = false; break;
+        case 'a': case 'arrowleft': k.left = false; break;
+        case 'd': case 'arrowright': k.right = false; break;
+        case 'e': case ' ':
+          k.interact = false;
+          interactPressed.current = false;
+          break;
       }
     };
 
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
     return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, [gs, onInteract]);
 }
