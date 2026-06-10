@@ -6,6 +6,15 @@ import { useMultiplayerSync } from '@/hooks/useMultiplayerSync';
 import { generateRoom } from '@/utils/roomGenerator';
 import { RoomConfig, Player, GameEvent } from '@/types/game';
 import { createLogger } from '@/utils/logger';
+import PhaserGame from './game/PhaserGame';
+import { ObjectiveSystem } from '@/game/systems/ObjectiveSystem';
+import { InventorySystem } from '@/game/systems/InventorySystem';
+import { SkillSystem } from '@/game/systems/SkillSystem';
+import { AlertSystem } from '@/game/systems/AlertSystem';
+import { ExfiltrationSystem, EXFIL_OPTIONS } from '@/game/systems/ExfiltrationSystem';
+import { CheckCircle2, Circle, Trophy, Download, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { useInventory } from '@/hooks/useInventory';
+import { useSkills } from '@/hooks/useSkills';
 
 const log = createLogger('GameScene');
 
@@ -20,8 +29,23 @@ interface GameSceneProps {
 }
 
 const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, roomId, mode, isHost, onComplete }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const missionId = `m${roomId + 1}`;
     const { gameState, gameStateRef, updateGameState } = useGameState(userId, roomId);
+    const { inventory } = useInventory(userId);
+    const { skills } = useSkills(userId);
+
+    // Initialize Systems
+    useEffect(() => {
+        ObjectiveSystem.getInstance().init(userId, missionId);
+    }, [userId, missionId]);
+
+    useEffect(() => {
+        if (inventory) InventorySystem.getInstance().init(inventory.map(i => ({ item_id: i.id, quantity: i.quantity })));
+    }, [inventory]);
+
+    useEffect(() => {
+        if (skills) SkillSystem.getInstance().init(skills);
+    }, [skills]);
     const { updateAI, guardPathsRef } = useGameAI();
     const { resolveMovement, checkInteraction } = useGameCollision();
     const { broadcastEvent } = useMultiplayerSync(
@@ -40,6 +64,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
     const [showDebug, setShowDebug] = useState(false);
     const showDebugRef = useRef<boolean>(false);
     const [fps, setFps] = useState(60);
+    const [showExfilDialog, setShowExfilDialog] = useState<string | null>(null);
 
     // Initialize Room
     useEffect(() => {
@@ -90,6 +115,11 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                 showDebugRef.current = !showDebugRef.current;
                 setShowDebug(showDebugRef.current);
             }
+            if (e.code === 'Digit1') InventorySystem.getInstance().useItem('emp');
+            if (e.code === 'Digit2') InventorySystem.getInstance().useItem('jammer');
+            if (e.code === 'Digit3') InventorySystem.getInstance().useItem('badge');
+            if (e.code === 'Digit4') InventorySystem.getInstance().useItem('usb');
+            if (e.code === 'Digit5') InventorySystem.getInstance().useItem('sniffer');
             if (e.code === 'ShiftLeft') updateGameState(prev => {
                 const players = new Map(prev.players);
                 const p = players.get(userId);
@@ -124,7 +154,11 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
 
         switch (interaction.type) {
             case 'terminal':
-                updateGameState({ showQuiz: true, activeHackTarget: interaction.target.id });
+                if (interaction.target.isMainObjective) {
+                    setShowExfilDialog(interaction.target.id);
+                } else {
+                    updateGameState({ showQuiz: true, activeHackTarget: interaction.target.id });
+                }
                 break;
             case 'exit':
                 if (isHost) {
@@ -188,10 +222,30 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                 }
             }
 
-            // 2. AI Update (Host Only)
+            // 2. Alert System Update
+            const localPlayer = gs.players.get(userId);
+            const isHidden = localPlayer?.isStealthMode || localPlayer?.isInVent || false;
+            const isJammerActive = InventorySystem.getInstance().isEffectActive('jammer');
+            const alertStage = AlertSystem.getInstance().update(dt, isHidden, isJammerActive);
+            if (alertStage === 'MISSION FAILED') {
+                updateGameState({ missionStatus: 'failed', message: 'Maximum alert level reached. Extraction impossible.' });
+            }
+
+            // 3. Exfiltration Update
+            const activeExfil = ExfiltrationSystem.getInstance().getActiveExfil();
+            if (activeExfil) {
+                const terminal = gs.terminals.find(t => t.id === activeExfil.terminalId);
+                if (terminal && localPlayer) {
+                    ExfiltrationSystem.getInstance().update(dt, localPlayer.position, terminal.position, (xp) => {
+                        broadcastEvent({ type: 'mission_complete' });
+                        updateGameState({ missionStatus: 'success' });
+                    });
+                }
+            }
+
+            // 4. AI Update (Host Only)
             if (isHost) {
                 updateAI(gs, dt, room.walls, room.shadows);
-                // Broadcast AI state occasionally (e.g., every 5 frames)
                 if (Math.random() > 0.8) {
                     broadcastEvent({ type: 'guard_update', guards: gs.guards });
                     broadcastEvent({ type: 'camera_update', cameras: gs.cameras });
@@ -199,174 +253,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                 }
             }
 
-            // 3. Render
-            render();
-
             frameId = requestAnimationFrame(loop);
-        };
-
-        const render = () => {
-            const canvas = canvasRef.current;
-            const ctx = canvas?.getContext('2d');
-            if (!ctx || !canvas) return;
-
-            const gs = gameStateRef.current;
-
-            // Clear
-            ctx.fillStyle = room.backgroundColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw Shadows
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            room.shadows.forEach(s => ctx.fillRect(s.x, s.y, s.w, s.h));
-
-            // Draw Walls
-            ctx.fillStyle = '#333';
-            room.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
-
-            // Draw Doors
-            gs.doors.forEach(d => {
-                ctx.fillStyle = d.state === 'locked' ? '#f00' : (d.state === 'closed' ? '#888' : '#444');
-                ctx.fillRect(d.position.x, d.position.y, d.width, d.height);
-            });
-
-            // Draw Terminals
-            gs.terminals.forEach(t => {
-                ctx.fillStyle = t.isHacked ? '#0f0' : (t.isMainObjective ? '#0ff' : '#aaa');
-                ctx.fillRect(t.position.x - 10, t.position.y - 10, 20, 20);
-                if (!t.isHacked) {
-                    ctx.strokeStyle = '#fff';
-                    ctx.strokeRect(t.position.x - 12, t.position.y - 12, 24, 24);
-                }
-            });
-
-            // Draw Exit
-            ctx.strokeStyle = '#0f0';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(room.exitPoint.x - 25, room.exitPoint.y - 25, 50, 50);
-
-            // Draw Guards FOV
-            gs.guards.forEach(g => {
-                ctx.fillStyle = g.state === 'chase' ? 'rgba(255, 0, 0, 0.2)' : 'rgba(255, 255, 0, 0.1)';
-                ctx.beginPath();
-                ctx.moveTo(g.position.x, g.position.y);
-                ctx.arc(g.position.x, g.position.y, g.visionRange, g.visionAngle - g.visionFOV/2, g.visionAngle + g.visionFOV/2);
-                ctx.fill();
-            });
-
-            // Draw Cameras FOV
-            gs.cameras.forEach(c => {
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
-                ctx.beginPath();
-                ctx.moveTo(c.position.x, c.position.y);
-                ctx.arc(c.position.x, c.position.y, c.visionRange, c.rotationAngle - c.visionFOV/2, c.rotationAngle + c.visionFOV/2);
-                ctx.fill();
-            });
-
-            // Draw Players
-            gs.players.forEach(p => {
-                ctx.save();
-                ctx.translate(p.position.x, p.position.y);
-                ctx.rotate(p.facing);
-                
-                // Shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                ctx.beginPath(); ctx.arc(2, 2, 12, 0, Math.PI*2); ctx.fill();
-
-                // Body
-                ctx.fillStyle = p.color;
-                ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
-                
-                // Direction indicator
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(8, -2, 6, 4);
-                
-                ctx.restore();
-
-                // Name tag
-                ctx.fillStyle = '#fff';
-                ctx.font = '10px Inter';
-                ctx.textAlign = 'center';
-                ctx.fillText(p.username, p.position.x, p.position.y - 20);
-            });
-
-            // Draw Guards
-            gs.guards.forEach(g => {
-                ctx.fillStyle = g.state === 'chase' ? '#f00' : '#fa0';
-                ctx.beginPath(); ctx.arc(g.position.x, g.position.y, 10, 0, Math.PI*2); ctx.fill();
-            });
-
-            // O оверлей отладки (F3 Debug Overlay)
-            if (showDebugRef.current) {
-                // 1. Сетка перемещения (GRID 20px)
-                ctx.strokeStyle = 'rgba(0, 255, 255, 0.04)';
-                ctx.lineWidth = 1;
-                for (let x = 0; x < canvas.width; x += 20) {
-                    ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, canvas.height);
-                    ctx.stroke();
-                }
-                for (let y = 0; y < canvas.height; y += 20) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(canvas.width, y);
-                    ctx.stroke();
-                }
-
-                // 2. Контуры стен / Препятствий
-                ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
-                ctx.lineWidth = 1.5;
-                room.walls.forEach(w => {
-                    ctx.strokeRect(w.x - 1, w.y - 1, w.w + 2, w.h + 2);
-                });
-
-                // 3. Траектории движения ИИ охранников (A* пути)
-                gs.guards.forEach(g => {
-                    const cache = guardPathsRef.current?.get(g.id);
-                    if (cache && cache.path && cache.path.length > 0) {
-                        ctx.strokeStyle = '#00ffff';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(g.position.x, g.position.y);
-                        cache.path.forEach(pt => {
-                            ctx.lineTo(pt.x, pt.y);
-                        });
-                        ctx.stroke();
-
-                        // Конечная маркер-цель
-                        ctx.fillStyle = '#00ffff';
-                        ctx.beginPath();
-                        ctx.arc(cache.target.x, cache.target.y, 5, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // Название точки следования
-                        ctx.fillStyle = '#00ffff';
-                        ctx.font = '9px monospace';
-                        ctx.fillText(`Target (${Math.round(cache.target.x)}, ${Math.round(cache.target.y)})`, cache.target.x, cache.target.y - 8);
-                    }
-                });
-
-                // 4. Текстовые углы зрения для Камер и Охранников
-                ctx.fillStyle = '#fa0';
-                ctx.font = '9px monospace';
-                gs.guards.forEach((g, idx) => {
-                    ctx.fillText(`G-${idx} S:${g.state} A:${g.visionAngle.toFixed(2)} rad`, g.position.x, g.position.y + 20);
-                });
-                gs.cameras.forEach((c, idx) => {
-                    ctx.fillText(`C-${idx} A:${c.rotationAngle.toFixed(2)} rad`, c.position.x, c.position.y + 20);
-                });
-            }
-
-            // Draw UI Overlay (Alert)
-            if (gs.alarmState === 'triggered') {
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#f00';
-                ctx.font = 'bold 24px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('ALARM ACTIVE', canvas.width / 2, 50);
-            }
         };
 
         frameId = requestAnimationFrame(loop);
@@ -375,15 +262,92 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
 
     return (
         <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden rounded-xl border border-white/10 shadow-2xl">
-            <canvas 
-                ref={canvasRef}
-                width={700}
-                height={500}
-                className="max-w-full max-h-full object-contain"
-            />
-            
+            <PhaserGame gameState={gameState} userId={userId} isHost={isHost} />
+
+            {/* Exfiltration Dialog */}
+            {showExfilDialog && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-zinc-900 border border-cyan-500/30 p-8 rounded-2xl max-w-md w-full">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Download className="w-8 h-8 text-cyan-400" />
+                            <h2 className="text-2xl font-orbitron font-bold text-white uppercase tracking-tight">Data Exfiltration</h2>
+                        </div>
+                        <p className="text-zinc-400 mb-8 text-sm">Select data package for extraction.</p>
+                        <div className="grid gap-4">
+                            {EXFIL_OPTIONS.map(opt => (
+                                <button key={opt.id} onClick={() => { ExfiltrationSystem.getInstance().startExfiltration(showExfilDialog, opt); setShowExfilDialog(null); }} className="p-4 bg-zinc-800/50 border border-white/5 hover:border-cyan-500/50 rounded-xl text-left group transition-all">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-white font-bold">{opt.label}</span>
+                                        <span className="text-cyan-400 font-mono">+{opt.xpReward} XP</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs text-zinc-500">
+                                        <span>Time: {opt.durationSec}s</span>
+                                        <span className="text-orange-500">Alert +{opt.alertIncrease}</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                        <button onClick={() => setShowExfilDialog(null)} className="mt-6 w-full py-3 text-zinc-500 hover:text-white font-mono text-xs uppercase">Cancel</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Exfiltration Progress HUD */}
+            {ExfiltrationSystem.getInstance().getActiveExfil() && (
+                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/90 border border-cyan-500/30 p-4 rounded-xl w-64 shadow-2xl z-40">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest animate-pulse">
+                            {ExfiltrationSystem.getInstance().getActiveExfil()?.isPaused ? 'DOWNLOAD PAUSED' : 'EXFILTRATING...'}
+                        </span>
+                        <span className="text-xs font-mono text-white">
+                            {Math.round(ExfiltrationSystem.getInstance().getActiveExfil()?.progress || 0)}%
+                        </span>
+                    </div>
+                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-cyan-500 transition-all duration-300" style={{ width: `${ExfiltrationSystem.getInstance().getActiveExfil()?.progress}%` }} />
+                    </div>
+                </div>
+            )}
+
+            {/* Objectives Panel */}
+            <div className="absolute top-4 right-4 bg-black/85 backdrop-blur-md p-4 rounded-lg border border-cyan-500/30 text-xs font-mono text-cyan-400 max-w-xs flex flex-col gap-2 z-40 pointer-events-none shadow-lg">
+                <div className="text-cyan-300 font-bold border-b border-cyan-500/20 pb-1 flex justify-between items-center">
+                    <span>▸ OBJECTIVES</span>
+                    <Trophy className="w-3 h-3 text-cyan-400" />
+                </div>
+                {ObjectiveSystem.getInstance().getObjectives().filter(o => o.type === 'primary' || !o.completed).map(obj => (
+                    <div key={obj.id} className="flex items-start gap-2">
+                        {obj.completed ? <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" /> : <Circle className="w-4 h-4 text-gray-600 shrink-0" />}
+                        <div>
+                            <p className={`${obj.completed ? 'text-green-500 line-through' : 'text-white'}`}>{obj.title}</p>
+                            {!obj.completed && <p className="text-[10px] text-gray-500">{obj.description}</p>}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Alert Bar */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-40 pointer-events-none">
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-black/80 backdrop-blur-md rounded-full border border-white/10 shadow-2xl">
+                    <ShieldAlert className={`w-4 h-4 ${AlertSystem.getInstance().getAlertLevel() > 75 ? 'text-red-500 animate-pulse' : 'text-green-500'}`} />
+                    <div className="w-48 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className={`h-full transition-all duration-300 ${AlertSystem.getInstance().getAlertLevel() > 75 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${AlertSystem.getInstance().getAlertLevel()}%` }} />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-white min-w-[80px]">{AlertSystem.getInstance().getStage()}</span>
+                </div>
+            </div>
+
             {/* HUD */}
             <div className="absolute top-4 left-4 pointer-events-none flex flex-col gap-2">
+                {/* Inventory HUD */}
+                <div className="flex gap-2 mb-2">
+                    {InventorySystem.getInstance().getItems().map(item => (
+                        <div key={item.id} className={`w-10 h-10 rounded-lg border flex items-center justify-center relative ${item.qty > 0 ? 'bg-zinc-900 border-cyan-500/50' : 'bg-zinc-950 border-white/5 opacity-50'}`}>
+                             <span className="text-white text-[10px] font-bold">{item.id.toUpperCase()}</span>
+                             <span className="absolute -top-1 -right-1 bg-cyan-600 text-white text-[8px] px-1 rounded-full">{item.qty}</span>
+                        </div>
+                    ))}
+                </div>
                 <div className="bg-black/60 backdrop-blur px-3 py-1 rounded border border-white/20 text-xs text-white">
                     ROOM: {room.name}
                 </div>
