@@ -2,6 +2,8 @@ import { useCallback, useRef } from 'react';
 import { GameState, Guard, Camera, Player, Vec2 } from '@/types/game';
 import { isPointInFOV, checkRaycast } from '@/utils/visibility';
 import { findPath } from '@/utils/pathfinding';
+import { AlertSystem } from '@/game/systems/AlertSystem';
+import { SkillSystem } from '@/game/systems/SkillSystem';
 
 export function useGameAI() {
   // Кеш путей для каждого охранника во избежание просадок FPS
@@ -24,7 +26,8 @@ export function useGameAI() {
       }
 
       // Sweep animation
-      camera.rotationAngle += camera.rotationSpeed * (deltaTime / 16.67);
+      const rotationMultiplier = AlertSystem.getInstance().getCameraRotationMultiplier();
+      camera.rotationAngle += camera.rotationSpeed * rotationMultiplier * (deltaTime / 16.67);
       const [min, max] = camera.rotationRange;
       if (camera.rotationAngle > max || camera.rotationAngle < min) {
           camera.rotationSpeed *= -1;
@@ -103,7 +106,8 @@ export function useGameAI() {
       for (const player of players) {
           if (player.isInVent) continue;
 
-          const inFOV = isPointInFOV(player.position, guard.position, guard.visionAngle, guard.visionFOV, guard.visionRange);
+          const detectionRange = guard.visionRange * SkillSystem.getInstance().getGuardDetectionRangeMultiplier();
+          const inFOV = isPointInFOV(player.position, guard.position, guard.visionAngle, guard.visionFOV, detectionRange);
           const visible = inFOV && checkRaycast(guard.position, player.position, walls);
           
           // Stealth / Shadow check
@@ -117,6 +121,7 @@ export function useGameAI() {
 
           if (visible && !isHidden) {
               guard.alertLevel += 2; // Rapid accumulation
+              AlertSystem.getInstance().increaseAlert(0.5); // Global alert accumulation
               if (guard.alertLevel >= 100) {
                   guard.state = 'chase';
                   guard.lastSeenPlayerPos = { ...player.position };
@@ -132,7 +137,8 @@ export function useGameAI() {
       switch (guard.state) {
           case 'patrol':
               const target = guard.patrolPoints[guard.currentPatrolIndex];
-              moveGuardWithPathfinding(guard, target, guard.speed);
+              const speedMultiplier = AlertSystem.getInstance().getGuardSpeedMultiplier();
+              moveGuardWithPathfinding(guard, target, guard.speed * speedMultiplier);
               if (dist(guard.position, target) < 15) {
                   guard.currentPatrolIndex = (guard.currentPatrolIndex + 1) % guard.patrolPoints.length;
               }
