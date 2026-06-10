@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { GameState, GameEvent, Player, Vec2 } from '@/types/game';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { createLogger } from '@/utils/logger';
+import { AlertSystem } from '@/game/systems/AlertSystem';
+import { ExfiltrationSystem } from '@/game/systems/ExfiltrationSystem';
+import { ObjectiveSystem } from '@/game/systems/ObjectiveSystem';
 
 const log = createLogger('MultiplayerSync');
 
@@ -75,23 +78,26 @@ export function useMultiplayerSync(
 
         updateGameState({ players: playersMap });
 
-        // Логика миграции хоста (Host Migration)
+        // Host Migration Logic
         if (!hostExists && activePlayerIds.length > 0) {
-          // Сортируем UUID игроков для детерминированного выбора
           activePlayerIds.sort();
           const newHostId = activePlayerIds[0];
 
           if (newHostId === userId) {
-            // Локальный игрок берет на себя роль хоста
             updateGameState({ isHost: true });
             
-            // Сразу же перерегистрируемся в Presence как новый хост
             channel.track({
               username,
               online_at: new Date().toISOString(),
               is_host: true,
               position: gameStateRef.current.players.get(userId)?.position || { x: 50, y: 250 }
             });
+
+            // Resume Exfiltration if was in progress
+            const activeExfil = ExfiltrationSystem.getInstance().getActiveExfil();
+            if (activeExfil) {
+                // Broadcast current exfil state to ensure everyone is on the same page
+            }
 
             log.info(`Host disconnected. Successfully promoted local user "${username}" (${userId}) to HOST.`);
           }
@@ -143,6 +149,7 @@ export function useMultiplayerSync(
             alarmState: event.alarmState,
             detectionLevel: event.detectionLevel
           });
+          AlertSystem.getInstance().increaseAlert(event.detectionLevel - AlertSystem.getInstance().getAlertLevel());
         }
         break;
 
