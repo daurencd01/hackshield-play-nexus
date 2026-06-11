@@ -20,8 +20,9 @@ export class MissionScene extends Phaser.Scene {
         super('MissionScene');
     }
 
-    init(data: { gameState: GameState }) {
-        this.gameState = data.gameState;
+    init(data: { gameState?: GameState }) {
+        // Registry is the single source of truth (kept in sync by PhaserGame).
+        this.gameState = data?.gameState ?? this.registry.get('gameState');
         this.events.on('shutdown', this.shutdown, this);
     }
 
@@ -93,6 +94,10 @@ export class MissionScene extends Phaser.Scene {
     }
 
     update(time: number, delta: number) {
+        // Pull the latest state from the registry every frame (kept in sync by PhaserGame).
+        const gs = this.registry.get('gameState') as GameState | undefined;
+        if (gs) this.gameState = gs;
+        if (!this.gameState) return;
         this.updatePlayers();
         this.updateGuards();
         this.updateCameras();
