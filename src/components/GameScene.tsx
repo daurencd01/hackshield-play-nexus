@@ -15,6 +15,9 @@ import { ExfiltrationSystem, EXFIL_OPTIONS } from '@/game/systems/ExfiltrationSy
 import { CheckCircle2, Circle, Trophy, Download, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useInventory } from '@/hooks/useInventory';
 import { useSkills } from '@/hooks/useSkills';
+import { HackChallenge } from './game/HackChallenge';
+import { challengeForTerminal } from '@/game/hackChallenges';
+import { dataService } from '@/lib/dataService';
 
 const log = createLogger('GameScene');
 
@@ -65,6 +68,10 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
     const showDebugRef = useRef<boolean>(false);
     const [fps, setFps] = useState(60);
     const [showExfilDialog, setShowExfilDialog] = useState<string | null>(null);
+    const [hint, setHint] = useState<string | null>(null);
+    const hintRef = useRef<string | null>(null);
+    const [flash, setFlash] = useState<string | null>(null);
+    const [showBriefing, setShowBriefing] = useState(true);
 
     // Initialize Room
     useEffect(() => {
@@ -154,20 +161,55 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
 
         switch (interaction.type) {
             case 'terminal':
-                if (interaction.target.isMainObjective) {
-                    setShowExfilDialog(interaction.target.id);
-                } else {
-                    updateGameState({ showQuiz: true, activeHackTarget: interaction.target.id });
+                if (interaction.target.isHacked) {
+                    flashMsg('Терминал уже взломан');
+                    break;
                 }
+                updateGameState({ showQuiz: true, activeHackTarget: interaction.target.id });
                 break;
-            case 'exit':
-                if (isHost) {
-                   broadcastEvent({ type: 'mission_complete' });
-                   updateGameState({ missionStatus: 'success' });
+            case 'exit': {
+                const mainHacked = gs.terminals.some(t => t.isMainObjective && t.isHacked);
+                if (!mainHacked) {
+                    flashMsg('Сначала отключите целевой терминал ★ (C2)');
+                    break;
                 }
+                broadcastEvent({ type: 'mission_complete' });
+                updateGameState({ missionStatus: 'success' });
                 break;
+            }
         }
     };
+
+    const flashMsg = (msg: string, ms = 2500) => {
+        setFlash(msg);
+        window.setTimeout(() => setFlash(curr => (curr === msg ? null : curr)), ms);
+    };
+
+    // Result of a terminal hack-challenge
+    const handleHackResolve = (correct: boolean, xp: number) => {
+        const targetId = gameStateRef.current.activeHackTarget;
+        const target = gameStateRef.current.terminals.find(t => t.id === targetId);
+        if (correct && targetId) {
+            updateGameState(prev => ({
+                ...prev,
+                terminals: prev.terminals.map(t => (t.id === targetId ? { ...t, isHacked: true } : t)),
+                showQuiz: false,
+                activeHackTarget: null,
+            }));
+            dataService.addXp(xp);
+            if (target?.isMainObjective) {
+                flashMsg('★ C2 ОТКЛЮЧЁН! Уходите через EXIT →', 4000);
+            } else {
+                flashMsg(`+${xp} XP · Терминал взломан`);
+            }
+        } else {
+            AlertSystem.getInstance().increaseAlert(20);
+            updateGameState({ showQuiz: false, activeHackTarget: null });
+            flashMsg('ДОСТУП ОТКЛОНЁН — тревога повышена!', 2000);
+        }
+    };
+
+    const handleHackClose = () => updateGameState({ showQuiz: false, activeHackTarget: null });
 
     // Game Loop
     useEffect(() => {
@@ -195,6 +237,19 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                 frameId = requestAnimationFrame(loop);
                 return;
             }
+
+            // Interaction hint (only re-renders when the prompt changes)
+            const hp = gs.players.get(userId);
+            let h: string | null = null;
+            if (hp) {
+                const it = checkInteraction(gs, hp);
+                if (it?.type === 'terminal') {
+                    h = it.target.isHacked ? null : (it.target.isMainObjective ? '★ Взломать C2 — [E]' : 'Взломать терминал — [E]');
+                } else if (it?.type === 'exit') {
+                    h = gs.terminals.some(t => t.isMainObjective && t.isHacked) ? 'Экстракция — [E]' : null;
+                }
+            }
+            if (h !== hintRef.current) { hintRef.current = h; setHint(h); }
 
             // 1. Local Player Movement
             const player = gs.players.get(userId);
@@ -263,6 +318,61 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
     return (
         <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden rounded-xl border border-white/10 shadow-2xl">
             <PhaserGame gameState={gameState} room={room} userId={userId} isHost={isHost} />
+
+            {/* Mission briefing — Operation BLACKOUT */}
+            {showBriefing && (
+                <div className="absolute inset-0 z-[55] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6">
+                    <div className="max-w-lg w-full bg-[#0b121c] border border-cyan-500/30 rounded-2xl p-7 shadow-[0_0_60px_rgba(6,182,212,0.15)]">
+                        <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-red-400 mb-1">// CLASSIFIED · INCIDENT RESPONSE</p>
+                        <h2 className="text-3xl font-bold text-white tracking-tight mb-1">OPERATION BLACKOUT</h2>
+                        <p className="text-cyan-400 font-mono text-xs mb-5">СЕКТОР: {room.name} · УГРОЗА: {room.difficulty.toUpperCase()}</p>
+                        <p className="text-gray-300 text-sm leading-relaxed mb-3">
+                            Синдикат <span className="text-red-400 font-semibold">NULL SECTOR</span> запустил шифровальщик в дата-центре NovaTech
+                            и выкачивает данные на C2-сервер. Ты — оперативник <span className="text-cyan-300 font-semibold">GHOST</span>.
+                        </p>
+                        <ul className="text-gray-400 text-sm space-y-1.5 mb-6">
+                            <li>▸ Пробирайся мимо операторов (охрана) и захваченных камер.</li>
+                            <li>▸ Взламывай терминалы — отвечай на задачи по кибербезопасности.</li>
+                            <li>▸ Отключи <span className="text-amber-400">★ целевой C2-терминал</span> и уйди через <span className="text-emerald-400">EXIT</span>.</li>
+                        </ul>
+                        <p className="text-[11px] text-gray-500 font-mono mb-5">Управление: WASD — движение · E — взлом · Shift — тихий шаг · F3 — отладка</p>
+                        <button
+                            onClick={() => setShowBriefing(false)}
+                            className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl transition-all"
+                        >
+                            НАЧАТЬ ОПЕРАЦИЮ →
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Terminal hack-challenge */}
+            {gameState.showQuiz && gameState.activeHackTarget && (() => {
+                const t = gameState.terminals.find(tt => tt.id === gameState.activeHackTarget);
+                const ch = challengeForTerminal(gameState.activeHackTarget, !!t?.isMainObjective);
+                return (
+                    <HackChallenge
+                        challenge={ch}
+                        isMainObjective={!!t?.isMainObjective}
+                        onResolve={handleHackResolve}
+                        onClose={handleHackClose}
+                    />
+                );
+            })()}
+
+            {/* Interaction hint */}
+            {hint && !gameState.showQuiz && !showBriefing && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full bg-black/75 border border-cyan-500/40 text-cyan-300 text-xs font-mono animate-pulse pointer-events-none">
+                    {hint}
+                </div>
+            )}
+
+            {/* Flash message */}
+            {flash && (
+                <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-lg bg-black/85 border border-cyan-500/40 text-cyan-200 text-sm font-mono text-center pointer-events-none shadow-lg">
+                    {flash}
+                </div>
+            )}
 
             {/* Exfiltration Dialog */}
             {showExfilDialog && (
