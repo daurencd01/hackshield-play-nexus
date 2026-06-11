@@ -100,31 +100,31 @@ export default function Game2DPage() {
         {mode === 'in_game' && user && (
           <div className="flex-1 relative flex flex-col">
              {/* Header UI during game */}
-             <div className="p-4 flex items-center justify-between bg-black/40 backdrop-blur border-b border-white/5">
-                <div className="flex items-center gap-4">
-                   <button onClick={() => setMode('none')} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+             <div className="p-2 sm:p-4 flex items-center justify-between gap-2 bg-black/40 backdrop-blur border-b border-white/5">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                   <button onClick={() => setMode('none')} className="p-2 hover:bg-white/5 rounded-lg transition-colors shrink-0">
                       <ChevronLeft className="w-5 h-5" />
                    </button>
-                   <div className="h-6 w-px bg-white/10" />
-                   <div className="text-xs font-mono uppercase tracking-widest text-zinc-500">
-                      SESSION: <span className="text-white">{session?.code || 'LOCAL_SOLO'}</span>
+                   <div className="hidden sm:block h-6 w-px bg-white/10" />
+                   <div className="text-[10px] sm:text-xs font-mono uppercase sm:tracking-widest text-zinc-500 truncate">
+                      <span className="hidden sm:inline">SESSION: </span><span className="text-white">{session?.code || 'LOCAL_SOLO'}</span>
                    </div>
                 </div>
-                <div className="flex items-center gap-6">
-                   <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 sm:gap-6 shrink-0">
+                   <div className="flex items-center gap-1.5 sm:gap-2">
                       <Shield className="w-4 h-4 text-emerald-400" />
-                      <div className="w-32 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className="w-16 sm:w-32 h-2 bg-zinc-800 rounded-full overflow-hidden">
                          <div className="h-full bg-emerald-500 w-[100%]" />
                       </div>
                    </div>
-                   <div className="flex items-center gap-2">
+                   <div className="flex items-center gap-1.5 sm:gap-2">
                       <Zap className="w-4 h-4 text-cyan-400" />
-                      <span className="text-xs font-mono text-cyan-400">XP: 2,450</span>
+                      <span className="text-[10px] sm:text-xs font-mono text-cyan-400">2450</span>
                    </div>
                 </div>
              </div>
 
-             <div className="flex-1 flex items-center justify-center p-4">
+             <div className="flex-1 flex items-center justify-center p-1 sm:p-4">
                 <GameScene 
                   userId={user.id}
                   username={user.email?.split('@')[0] || 'Operative'}

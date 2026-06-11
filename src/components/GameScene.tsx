@@ -16,6 +16,7 @@ import { CheckCircle2, Circle, Trophy, Download, AlertTriangle, ShieldAlert } fr
 import { useInventory } from '@/hooks/useInventory';
 import { useSkills } from '@/hooks/useSkills';
 import { HackChallenge } from './game/HackChallenge';
+import { TouchControls } from './game/TouchControls';
 import { challengeForTerminal } from '@/game/hackChallenges';
 import { dataService } from '@/lib/dataService';
 
@@ -62,6 +63,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
 
     const room = useMemo(() => generateRoom(roomId), [roomId]);
     const keys = useRef<Record<string, boolean>>({});
+    const touchRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     
     // Состояния для Debug оверлея
     const [showDebug, setShowDebug] = useState(false);
@@ -258,10 +260,12 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
             const player = gs.players.get(userId);
             if (player && !player.isStunned) {
                 const speed = player.isStealthMode ? 1.5 : 3;
-                const dx = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0);
-                const dy = (keys.current['KeyS'] ? 1 : 0) - (keys.current['KeyW'] ? 1 : 0);
-                
-                if (dx !== 0 || dy !== 0) {
+                let dx = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0);
+                let dy = (keys.current['KeyS'] ? 1 : 0) - (keys.current['KeyW'] ? 1 : 0);
+                // Touch joystick fallback (mobile)
+                if (dx === 0 && dy === 0) { dx = touchRef.current.x; dy = touchRef.current.y; }
+
+                if (Math.hypot(dx, dy) > 0.15) {
                     const angle = Math.atan2(dy, dx);
                     const desiredPos = {
                         x: player.position.x + Math.cos(angle) * speed,
@@ -346,10 +350,10 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
 
             {/* Mission briefing — Operation BLACKOUT */}
             {showBriefing && (
-                <div className="absolute inset-0 z-[55] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6">
-                    <div className="max-w-lg w-full bg-[#0b121c] border border-cyan-500/30 rounded-2xl p-7 shadow-[0_0_60px_rgba(6,182,212,0.15)]">
+                <div className="fixed inset-0 z-[55] bg-black/90 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+                    <div className="max-w-lg w-full max-h-[90vh] overflow-y-auto bg-[#0b121c] border border-cyan-500/30 rounded-2xl p-5 sm:p-7 shadow-[0_0_60px_rgba(6,182,212,0.15)]">
                         <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-red-400 mb-1">// CLASSIFIED · INCIDENT RESPONSE</p>
-                        <h2 className="text-3xl font-bold text-white tracking-tight mb-1">OPERATION BLACKOUT</h2>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-1">OPERATION BLACKOUT</h2>
                         <p className="text-cyan-400 font-mono text-xs mb-5">СЕКТОР: {room.name} · УГРОЗА: {room.difficulty.toUpperCase()}</p>
                         <p className="text-gray-300 text-sm leading-relaxed mb-3">
                             Синдикат <span className="text-red-400 font-semibold">NULL SECTOR</span> запустил шифровальщик в дата-центре NovaTech
@@ -399,9 +403,23 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                 </div>
             )}
 
+            {/* Touch controls (mobile) */}
+            {!showBriefing && !gameState.showQuiz && gameState.missionStatus === 'in_progress' && (
+                <TouchControls
+                    onMove={(x, y) => { touchRef.current = { x, y }; }}
+                    onAction={handleInteract}
+                    onStealth={(on) => updateGameState(prev => {
+                        const players = new Map(prev.players);
+                        const p = players.get(userId);
+                        if (p) p.isStealthMode = on;
+                        return { ...prev, players };
+                    })}
+                />
+            )}
+
             {/* Exfiltration Dialog */}
             {showExfilDialog && (
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-zinc-900 border border-cyan-500/30 p-8 rounded-2xl max-w-md w-full">
                         <div className="flex items-center gap-3 mb-6">
                             <Download className="w-8 h-8 text-cyan-400" />
@@ -542,7 +560,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
 
             {/* Mission Status Overlays */}
             {gameState.missionStatus === 'success' && (
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
                     <h2 className="text-4xl font-bold text-green-500 mb-4 tracking-tighter">MISSION ACCOMPLISHED</h2>
                     <p className="text-white/60 mb-8">All objectives secured. Extraction successful.</p>
                     <button 
@@ -562,7 +580,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
 
             {/* Mission Status Overlays */}
             {gameState.missionStatus === 'failed' && (
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
                     <h2 className="text-4xl font-bold text-red-500 mb-4 tracking-tighter">MISSION FAILED</h2>
                     <p className="text-white/60 mb-8">{gameState.message || 'You were detected or compromised.'}</p>
                     <button 

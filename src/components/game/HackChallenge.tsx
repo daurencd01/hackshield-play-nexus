@@ -20,8 +20,8 @@ export const HackChallenge: React.FC<Props> = ({ challenge, isMainObjective, onR
   };
 
   return (
-    <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg bg-[#0b121c] border border-cyan-500/30 rounded-2xl shadow-[0_0_60px_rgba(6,182,212,0.15)] overflow-hidden">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4">
+      <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto bg-[#0b121c] border border-cyan-500/30 rounded-2xl shadow-[0_0_60px_rgba(6,182,212,0.15)]">
         {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-950/40 to-transparent">
           {isMainObjective ? <Cpu className="w-6 h-6 text-amber-400" /> : <TerminalIcon className="w-6 h-6 text-cyan-400" />}
