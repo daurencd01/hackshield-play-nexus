@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import GameScene from '@/components/GameScene';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
+import { OrientationGate } from '@/components/game/OrientationGate';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Users, Terminal, Shield, Zap, ChevronLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,12 +20,26 @@ export default function Game2DPage() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
   }, []);
 
+  // Best-effort immersive landscape on phones (needs a user gesture).
+  const goImmersive = () => {
+    try {
+      const el = document.documentElement as any;
+      if (window.innerWidth < 900 && el.requestFullscreen) {
+        el.requestFullscreen().then(() => {
+          (window.screen as any)?.orientation?.lock?.('landscape').catch(() => {});
+        }).catch(() => {});
+      }
+    } catch { /* unsupported */ }
+  };
+
   const handleJoinSession = (sessionId: string, roomCode: string, isHost: boolean) => {
+    goImmersive();
     setSession({ id: sessionId, code: roomCode, isHost });
     setMode('in_game');
   };
 
   const startSolo = () => {
+    goImmersive();
     setMode('in_game');
     setSession(null);
   };
@@ -98,6 +113,7 @@ export default function Game2DPage() {
 
         {/* Game Scene */}
         {mode === 'in_game' && user && (
+          <OrientationGate>
           <div className="flex-1 relative flex flex-col">
              {/* Header UI during game */}
              <div className="p-2 sm:p-4 flex items-center justify-between gap-2 bg-black/40 backdrop-blur border-b border-white/5">
@@ -135,6 +151,7 @@ export default function Game2DPage() {
                 />
              </div>
           </div>
+          </OrientationGate>
         )}
 
       </div>

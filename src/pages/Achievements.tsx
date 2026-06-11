@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { achievements } from "@/data/defaultData";
 import { Progress } from "@/components/ui/progress";
-import GameHeader from "@/components/GameHeader";
+import { Layout } from "@/components/Layout";
 
 const rarityStyles: Record<string, { border: string; bg: string; label: string; text: string }> = {
   common: { border: "border-muted-foreground/30", bg: "bg-muted/20", label: "ОБЫЧНАЯ", text: "text-muted-foreground" },
@@ -14,10 +14,8 @@ export default function AchievementsPage() {
   const unlocked = achievements.filter((a) => a.unlocked).length;
 
   return (
-    <div className="min-h-screen bg-background cyber-grid">
-      <div className="scanline fixed inset-0 z-50 pointer-events-none" />
-      <GameHeader />
-      <main className="mx-auto max-w-3xl px-4 py-8">
+    <Layout title="Достижения">
+      <main className="mx-auto max-w-3xl px-4 py-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -67,6 +65,6 @@ export default function AchievementsPage() {
           })}
         </div>
       </main>
-    </div>
+    </Layout>
   );
 }
