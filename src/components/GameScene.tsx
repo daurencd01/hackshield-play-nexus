@@ -259,7 +259,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
             // 1. Local Player Movement
             const player = gs.players.get(userId);
             if (player && !player.isStunned) {
-                const speed = player.isStealthMode ? 1.5 : 3;
+                const speed = player.isStealthMode ? 2 : 4;
                 let dx = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0);
                 let dy = (keys.current['KeyS'] ? 1 : 0) - (keys.current['KeyW'] ? 1 : 0);
                 // Touch joystick fallback (mobile)

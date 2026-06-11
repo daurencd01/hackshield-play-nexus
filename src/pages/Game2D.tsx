@@ -14,6 +14,7 @@ export default function Game2DPage() {
   const [mode, setMode] = useState<GameMode>('none');
   const [session, setSession] = useState<{ id: string; code: string; isHost: boolean } | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [roomIndex, setRoomIndex] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function Game2DPage() {
 
   const startSolo = () => {
     goImmersive();
+    setRoomIndex(0);
     setMode('in_game');
     setSession(null);
   };
@@ -141,13 +143,15 @@ export default function Game2DPage() {
              </div>
 
              <div className="flex-1 flex items-center justify-center p-1 sm:p-4">
-                <GameScene 
+                <GameScene
+                  key={roomIndex}
                   userId={user.id}
                   username={user.email?.split('@')[0] || 'Operative'}
                   sessionId={session?.id}
-                  roomId={0} // Start from tutorial
+                  roomId={roomIndex}
                   mode={session ? 'coop' : 'solo'}
                   isHost={session ? session.isHost : true}
+                  onComplete={() => setRoomIndex((r) => Math.min(r + 1, 19))}
                 />
              </div>
           </div>

@@ -38,8 +38,8 @@ export function generateRoom(roomId: number): RoomConfig {
   const meta = ROOM_CONFIG_METADATA[roomId] || ROOM_CONFIG_METADATA[0];
   const rng = mulberry32(roomId * 1000 + 42);
   
-  const width = 700;
-  const height = 500;
+  const width = 1280;
+  const height = 900;
   const cellSize = 50;
   
   const room: RoomConfig = {
@@ -121,9 +121,9 @@ export function generateRoom(roomId: number): RoomConfig {
     });
   }
 
-  // Add Guards (starting from room 1)
-  if (roomId > 0) {
-    const guardCount = Math.min(Math.floor(roomId / 2), 12);
+  // Add Guards (patrolling) — at least a couple even in the tutorial room
+  {
+    const guardCount = roomId === 0 ? 2 : Math.min(3 + Math.floor(roomId / 2), 16);
     for (let i = 0; i < guardCount; i++) {
       const p1 = { x: rng() * (width - 200) + 100, y: rng() * (height - 200) + 100 };
       const p2 = { x: p1.x + (rng() - 0.5) * 200, y: p1.y + (rng() - 0.5) * 200 };

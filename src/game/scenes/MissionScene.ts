@@ -107,8 +107,11 @@ export class MissionScene extends Phaser.Scene {
     private setupCamera() {
         const w = this.room?.width ?? 700;
         const h = this.room?.height ?? 500;
-        // Center the room inside the 800x600 canvas (room is smaller, so no scrolling).
-        this.cameras.main.setScroll((w - 800) / 2, (h - 600) / 2);
+        this.cameras.main.setBounds(0, 0, w, h);
+        // Small rooms: center them. Large rooms: the camera follows the player (set in updatePlayers).
+        if (w <= 800 && h <= 600) {
+            this.cameras.main.centerOn(w / 2, h / 2);
+        }
     }
 
     update(_time: number, delta: number) {
@@ -134,6 +137,9 @@ export class MissionScene extends Phaser.Scene {
             if (!sprite) {
                 sprite = this.physics.add.sprite(p.position.x, p.position.y, 'player').setDepth(8);
                 this.playerSprites.set(id, sprite);
+                if (id === this.gameState.localPlayerId) {
+                    this.cameras.main.startFollow(sprite, true, 0.12, 0.12);
+                }
             }
             sprite.setPosition(p.position.x, p.position.y);
             sprite.setRotation(p.facing);
