@@ -53,37 +53,45 @@ export class PreloadScene extends Phaser.Scene {
         graphics.fillRect(14, 12, 4, 8);
         graphics.generateTexture('door', 32, 32);
 
-        // Player
-        graphics.clear();
-        graphics.fillStyle(0x00FF88);
-        graphics.fillCircle(16, 16, 12);
-        graphics.fillStyle(0xFFFFFF);
-        graphics.fillRect(24, 14, 6, 4);
-        graphics.generateTexture('player', 32, 32);
+        // Top-down humanoid agent (drawn facing +x so it rotates with `facing`)
+        const drawAgent = (key: string, coat: number, accent: number, skin: number, size = 34) => {
+            const c = size / 2;
+            graphics.clear();
+            // shadow
+            graphics.fillStyle(0x000000, 0.3);
+            graphics.fillEllipse(c, c + 8, size * 0.72, size * 0.26);
+            // arms
+            graphics.fillStyle(coat, 1);
+            graphics.fillCircle(c - 3, c - 10, 4);
+            graphics.fillCircle(c - 3, c + 10, 4);
+            // torso / coat (slightly elongated forward)
+            graphics.fillStyle(coat, 1);
+            graphics.fillEllipse(c, c, size * 0.74, size * 0.62);
+            graphics.lineStyle(2, accent, 1);
+            graphics.strokeEllipse(c, c, size * 0.74, size * 0.62);
+            // back of head / cap
+            graphics.fillStyle(0x12181f, 1);
+            graphics.fillCircle(c, c, 7);
+            // face (skin) toward the front
+            graphics.fillStyle(skin, 1);
+            graphics.fillCircle(c + 4, c, 5);
+            // shoulder lights
+            graphics.fillStyle(accent, 0.95);
+            graphics.fillCircle(c - 6, c - 9, 2.2);
+            graphics.fillCircle(c - 6, c + 9, 2.2);
+            // facing visor / direction
+            graphics.fillStyle(accent, 1);
+            graphics.fillTriangle(c + 14, c, c + 9, c - 4, c + 9, c + 4);
+            graphics.generateTexture(key, size, size);
+        };
 
-        // Guard
-        graphics.clear();
-        graphics.fillStyle(0xFFA500);
-        graphics.fillCircle(16, 16, 12);
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(24, 14, 6, 4);
-        graphics.generateTexture('guard', 32, 32);
-
-        // Boss (SOC Manager)
-        graphics.clear();
-        graphics.fillStyle(0xFF00FF);
-        graphics.fillCircle(16, 16, 14);
-        graphics.fillStyle(0xFFFFFF);
-        graphics.fillRect(24, 14, 6, 4);
-        graphics.generateTexture('boss_soc', 32, 32);
-
-        // Boss (IRT)
-        graphics.clear();
-        graphics.fillStyle(0xFF0000);
-        graphics.fillCircle(16, 16, 12);
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(24, 14, 6, 4);
-        graphics.generateTexture('boss_irt', 32, 32);
+        // Player — cyber-green operative
+        drawAgent('player', 0x117a52, 0x00ff88, 0xf2c79a);
+        // Guard — orange enforcer
+        drawAgent('guard', 0x7a3b1f, 0xff8a3c, 0xe6b48a);
+        // Bosses
+        drawAgent('boss_soc', 0x5e2a6e, 0xff44ff, 0xe9c0a0, 44);
+        drawAgent('boss_irt', 0x6e2222, 0xff3344, 0xe9c0a0, 44);
 
         // Camera
         graphics.clear();

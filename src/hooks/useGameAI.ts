@@ -79,9 +79,10 @@ export function useGameAI() {
       }
 
       if (cache.path && cache.path.length > 1) {
-        // Находим следующую точку в пути, которая дальше чем 12 пикселей
-        let nextPointIndex = 0;
-        while (nextPointIndex < cache.path.length && dist(guard.position, cache.path[nextPointIndex]) < 12) {
+        // Пропускаем стартовый узел (центр текущей клетки) и любые слишком близкие точки,
+        // иначе охранник бесконечно идёт к центру собственной клетки и стоит на месте.
+        let nextPointIndex = 1;
+        while (nextPointIndex < cache.path.length && dist(guard.position, cache.path[nextPointIndex]) < 14) {
           nextPointIndex++;
         }
 
