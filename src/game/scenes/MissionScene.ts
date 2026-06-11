@@ -10,6 +10,7 @@ export class MissionScene extends Phaser.Scene {
     private guardSprites: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
     private cameraSprites: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
     private terminalSprites: Map<string, { sprite: Phaser.GameObjects.Sprite; label: Phaser.GameObjects.Text }> = new Map();
+    private collectibleSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
     private bosses: Map<string, BossEntity> = new Map();
     private gameState!: GameState;
     private room?: RoomConfig;
@@ -39,6 +40,7 @@ export class MissionScene extends Phaser.Scene {
         this.guardSprites.clear();
         this.cameraSprites.clear();
         this.terminalSprites.clear();
+        this.collectibleSprites.clear();
         this.bosses.clear();
     }
 
@@ -83,6 +85,15 @@ export class MissionScene extends Phaser.Scene {
             g.lineStyle(1, 0x415273, 1).strokeRect(wall.x, wall.y, wall.w, wall.h);
         });
 
+        // Decorative "hacker" props
+        const propTex: Record<string, string> = { server: 'prop_server', datacore: 'prop_datacore', console: 'prop_console', crate: 'prop_crate' };
+        room?.props?.forEach(p => {
+            const img = this.add.image(p.x, p.y, propTex[p.type] ?? 'prop_crate').setDepth(1).setAlpha(0.95);
+            if (p.type === 'datacore') {
+                this.tweens.add({ targets: img, alpha: 0.55, scale: 1.08, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+            }
+        });
+
         // Exit zone
         if (room) {
             const ex = room.exitPoint;
@@ -109,6 +120,7 @@ export class MissionScene extends Phaser.Scene {
         this.updateGuards();
         this.updateCameras();
         this.updateTerminals();
+        this.updateCollectibles();
         this.updateDoors();
         this.updateLasers();
         this.updateVision();
@@ -147,6 +159,7 @@ export class MissionScene extends Phaser.Scene {
             let sprite = this.cameraSprites.get(c.id);
             if (!sprite) {
                 sprite = this.physics.add.sprite(c.position.x, c.position.y, 'camera').setDepth(7);
+                this.tweens.add({ targets: sprite, alpha: 0.5, duration: 480, yoyo: true, repeat: -1 });
                 this.cameraSprites.set(c.id, sprite);
             }
             sprite.setRotation(c.rotationAngle);
@@ -159,6 +172,7 @@ export class MissionScene extends Phaser.Scene {
             let entry = this.terminalSprites.get(t.id);
             if (!entry) {
                 const sprite = this.add.sprite(t.position.x, t.position.y, 'terminal').setDepth(7);
+                this.tweens.add({ targets: sprite, scale: 1.14, duration: 720, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
                 const label = this.add.text(t.position.x, t.position.y - 24,
                     t.isMainObjective ? '★ TARGET' : 'TERMINAL',
                     { fontSize: '10px', color: t.isMainObjective ? '#ffd700' : '#00ffff', fontFamily: 'monospace' })
@@ -171,6 +185,39 @@ export class MissionScene extends Phaser.Scene {
                 entry.label.setText('HACKED').setColor('#00ff88');
             } else {
                 entry.sprite.setTint(t.isMainObjective ? 0xffd700 : 0x00ffff);
+            }
+        });
+    }
+
+    private collectibleTex(type: string): string {
+        if (type.startsWith('keycard')) return 'pickup_keycard';
+        if (type === 'intel') return 'pickup_intel';
+        if (type === 'medkit') return 'pickup_medkit';
+        if (type === 'emp') return 'pickup_emp';
+        return 'pickup_data';
+    }
+
+    private updateCollectibles() {
+        const present = new Set<string>();
+        (this.gameState.collectibles || []).forEach((c: any) => {
+            if (!c?.id || !c.position) return;
+            present.add(c.id);
+            if (!this.collectibleSprites.has(c.id)) {
+                const s = this.add.sprite(c.position.x, c.position.y, this.collectibleTex(c.type)).setDepth(6);
+                // glow ring
+                const ring = this.add.circle(c.position.x, c.position.y, 14, 0x00e5ff, 0.12).setDepth(5);
+                this.tweens.add({ targets: ring, scale: 1.5, alpha: 0, duration: 1300, repeat: -1, ease: 'Sine.easeOut' });
+                this.tweens.add({ targets: s, y: c.position.y - 6, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+                s.setData('ring', ring);
+                this.collectibleSprites.set(c.id, s);
+            }
+        });
+        // remove collected
+        this.collectibleSprites.forEach((s, id) => {
+            if (!present.has(id)) {
+                (s.getData('ring') as Phaser.GameObjects.Arc | undefined)?.destroy();
+                s.destroy();
+                this.collectibleSprites.delete(id);
             }
         });
     }
