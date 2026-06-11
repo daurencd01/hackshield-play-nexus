@@ -262,7 +262,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
 
     return (
         <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden rounded-xl border border-white/10 shadow-2xl">
-            <PhaserGame gameState={gameState} userId={userId} isHost={isHost} />
+            <PhaserGame gameState={gameState} room={room} userId={userId} isHost={isHost} />
 
             {/* Exfiltration Dialog */}
             {showExfilDialog && (
@@ -309,13 +309,13 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                 </div>
             )}
 
-            {/* Objectives Panel */}
-            <div className="absolute top-4 right-4 bg-black/85 backdrop-blur-md p-4 rounded-lg border border-cyan-500/30 text-xs font-mono text-cyan-400 max-w-xs flex flex-col gap-2 z-40 pointer-events-none shadow-lg">
+            {/* Objectives Panel (translucent & slim so it doesn't hide the playfield) */}
+            <div className="absolute top-4 right-4 bg-black/35 backdrop-blur-sm p-3 rounded-lg border border-cyan-500/20 text-xs font-mono text-cyan-400 max-w-[190px] flex flex-col gap-1.5 z-40 pointer-events-none shadow-lg">
                 <div className="text-cyan-300 font-bold border-b border-cyan-500/20 pb-1 flex justify-between items-center">
                     <span>▸ OBJECTIVES</span>
                     <Trophy className="w-3 h-3 text-cyan-400" />
                 </div>
-                {ObjectiveSystem.getInstance().getObjectives().filter(o => o.type === 'primary' || !o.completed).map(obj => (
+                {ObjectiveSystem.getInstance().getObjectives().filter(o => o.type === 'primary' || !o.completed).slice(0, 4).map(obj => (
                     <div key={obj.id} className="flex items-start gap-2">
                         {obj.completed ? <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" /> : <Circle className="w-4 h-4 text-gray-600 shrink-0" />}
                         <div>

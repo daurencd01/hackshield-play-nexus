@@ -2,15 +2,16 @@ import React, { useEffect, useRef } from 'react';
 import * as Phaser from 'phaser';
 import { PreloadScene } from '@/game/scenes/PreloadScene';
 import { MissionScene } from '@/game/scenes/MissionScene';
-import { GameState } from '@/types/game';
+import { GameState, RoomConfig } from '@/types/game';
 
 interface PhaserGameProps {
     gameState: GameState;
+    room?: RoomConfig;
     userId: string;
     isHost: boolean;
 }
 
-const PhaserGame: React.FC<PhaserGameProps> = ({ gameState }) => {
+const PhaserGame: React.FC<PhaserGameProps> = ({ gameState, room }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const gameRef = useRef<Phaser.Game | null>(null);
 
@@ -32,7 +33,8 @@ const PhaserGame: React.FC<PhaserGameProps> = ({ gameState }) => {
         };
         const game = new Phaser.Game(config);
         gameRef.current = game;
-        // Registry is the single source of truth for game state — set before scenes boot.
+        // Registry is the single source of truth — set before scenes boot.
+        game.registry.set('room', room);
         game.registry.set('gameState', gameState);
         return () => {
             game.destroy(true);
