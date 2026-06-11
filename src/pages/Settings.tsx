@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { uploadAvatar } from "@/lib/avatarUpload";
 import { motion } from "framer-motion";
-import GameHeader from "@/components/GameHeader";
+import { Layout } from "@/components/Layout";
 import { Target, AlertCircle, Save, CheckCircle, Camera, Loader2 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -204,10 +204,8 @@ export default function SettingsPage() {
   const initials = username ? username.charAt(0).toUpperCase() : "?";
 
   return (
-    <div className="min-h-screen bg-background cyber-grid">
-      <div className="scanline fixed inset-0 z-50 pointer-events-none" />
-      <GameHeader />
-      <main className="mx-auto max-w-lg px-4 py-8">
+    <Layout title="Настройки" showBack>
+      <main className="mx-auto max-w-lg px-4 py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -412,6 +410,6 @@ export default function SettingsPage() {
           </form>
         </motion.div>
       </main>
-    </div>
+    </Layout>
   );
 }

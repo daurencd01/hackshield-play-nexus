@@ -4,7 +4,7 @@ import {
   Edit3, Check, Copy, Mail, Calendar, Globe 
 } from "lucide-react";
 import { format } from "date-fns";
-import GameHeader from "@/components/GameHeader";
+import { Layout } from "@/components/Layout";
 import SocialLinks from "@/components/SocialLinks";
 import { 
   PageLoader, ErrorState, getRank, getLevel 
@@ -47,8 +47,8 @@ export default function ProfilePage() {
   
   const [editing, setEditing] = useState(false);
 
-  if (phase === "loading") return <div className="min-h-screen bg-background"><GameHeader /><PageLoader label="Загрузка профиля..." /></div>;
-  if (phase === "error")   return <div className="min-h-screen bg-background"><GameHeader /><main className="p-8"><ErrorState message="Не удалось загрузить профиль." onRetry={loadProfile} /></main></div>;
+  if (phase === "loading") return <Layout title="Профиль"><PageLoader label="Загрузка профиля..." /></Layout>;
+  if (phase === "error")   return <Layout title="Профиль"><main className="p-8"><ErrorState message="Не удалось загрузить профиль." onRetry={loadProfile} /></main></Layout>;
 
   const xp = user?.xp ?? 0;
   const displayUsername = user?.username ?? "Agent";
@@ -57,10 +57,8 @@ export default function ProfilePage() {
   const displayJoined = user?.created_at ? format(new Date(user.created_at), "dd MMM yyyy") : "—";
 
   return (
-    <div className="min-h-screen bg-background cyber-grid">
-      <div className="scanline fixed inset-0 z-50 pointer-events-none" />
-      <GameHeader />
-      <main className="mx-auto max-w-2xl px-4 py-8 space-y-4">
+    <Layout title="Профиль">
+      <main className="mx-auto max-w-2xl px-4 py-6 space-y-4">
 
         {/* ── Avatar + hero ─────────────────────────────────────────────────── */}
         <motion.div
@@ -167,6 +165,6 @@ export default function ProfilePage() {
           ))}
         </motion.div>
       </main>
-    </div>
+    </Layout>
   );
 }

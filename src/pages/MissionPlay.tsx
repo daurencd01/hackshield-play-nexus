@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { missions } from "@/data/defaultData";
 import ScenarioPlayer from "@/components/ScenarioPlayer";
-import GameHeader from "@/components/GameHeader";
+import { Layout } from "@/components/Layout";
 import GameScene from "@/components/GameScene";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ArrowLeft, Award } from "lucide-react";
@@ -36,10 +36,8 @@ export default function MissionPlayPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background cyber-grid">
-      <div className="scanline fixed inset-0 z-50 pointer-events-none" />
-      <GameHeader />
-      <main className="mx-auto max-w-4xl px-4 py-8">
+    <Layout title={mission.title} showBack>
+      <main className="mx-auto max-w-4xl px-4 py-6">
         {!started && !completed && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -121,6 +119,6 @@ export default function MissionPlayPage() {
           </motion.div>
         )}
       </main>
-    </div>
+    </Layout>
   );
 }
