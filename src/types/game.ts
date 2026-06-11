@@ -101,7 +101,8 @@ export interface RoomConfig {
   doors: Omit<Door, 'id'>[];
   terminals: Omit<Terminal, 'id'>[];
   lasers: Omit<Laser, 'id'>[];
-  collectibles: { type: 'keycard_blue'|'keycard_red'|'keycard_gold'|'emp'|'medkit'|'usb'; position: Vec2 }[];
+  collectibles: { type: 'keycard_blue'|'keycard_red'|'keycard_gold'|'emp'|'medkit'|'usb'|'data'|'intel'; position: Vec2 }[];
+  props?: { type: 'server'|'datacore'|'console'|'crate'; x: number; y: number }[];
   ventilation: { x: number; y: number; w: number; h: number }[];
   alarmButtons: Vec2[];
   objective: string; // "Взломайте центральный сервер и достигните выхода"

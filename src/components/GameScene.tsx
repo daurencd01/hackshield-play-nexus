@@ -72,6 +72,8 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
     const hintRef = useRef<string | null>(null);
     const [flash, setFlash] = useState<string | null>(null);
     const [showBriefing, setShowBriefing] = useState(true);
+    const briefingRef = useRef(true);
+    useEffect(() => { briefingRef.current = showBriefing; }, [showBriefing]);
 
     // Initialize Room
     useEffect(() => {
@@ -107,6 +109,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
             doors: room.doors.map((d, i) => ({ ...d, id: `door-${i}` })),
             terminals: room.terminals.map((t, i) => ({ ...t, id: `terminal-${i}` })),
             lasers: room.lasers.map((l, i) => ({ ...l, id: `laser-${i}` })),
+            collectibles: room.collectibles.map((c, i) => ({ ...c, id: `pickup-${i}` })),
             players,
             missionStatus: 'in_progress'
         });
@@ -233,7 +236,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
             }
 
             const gs = gameStateRef.current;
-            if (gs.missionStatus !== 'in_progress' || gs.showQuiz) {
+            if (gs.missionStatus !== 'in_progress' || gs.showQuiz || briefingRef.current) {
                 frameId = requestAnimationFrame(loop);
                 return;
             }
@@ -274,6 +277,28 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                         position: player.position,
                         facing: player.facing
                     });
+                }
+            }
+
+            // 1b. Auto-pickup bonuses
+            const lp = gs.players.get(userId);
+            if (lp && gs.collectibles.length) {
+                for (const c of gs.collectibles as any[]) {
+                    const ddx = lp.position.x - c.position.x;
+                    const ddy = lp.position.y - c.position.y;
+                    if (ddx * ddx + ddy * ddy < 26 * 26) {
+                        if (c.type === 'data') { dataService.addXp(25); flashMsg('+25 XP · Data shard'); }
+                        else if (c.type === 'intel') { dataService.addXp(40); ObjectiveSystem.getInstance().completeObjective('intel'); flashMsg('+40 XP · Intel получен'); }
+                        else if (c.type === 'medkit') { lp.health = Math.min(lp.maxHealth, lp.health + 30); flashMsg('+30 HP · Аптечка'); }
+                        else if (c.type === 'emp') { lp.empCharges += 1; flashMsg('+1 ЭМИ-заряд'); }
+                        else if (typeof c.type === 'string' && c.type.startsWith('keycard')) {
+                            const col = c.type.split('_')[1];
+                            if (!lp.keycards.includes(col)) lp.keycards.push(col);
+                            flashMsg('Ключ-карта: ' + col);
+                        }
+                        updateGameState(prev => ({ ...prev, collectibles: (prev.collectibles as any[]).filter(x => x.id !== c.id) }));
+                        break;
+                    }
                 }
             }
 

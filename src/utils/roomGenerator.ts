@@ -65,6 +65,7 @@ export function generateRoom(roomId: number): RoomConfig {
     terminals: [],
     lasers: [],
     collectibles: [],
+    props: [],
     ventilation: [],
     alarmButtons: [],
     objective: "Hack the main terminal and reach the exit."
@@ -168,6 +169,26 @@ export function generateRoom(roomId: number): RoomConfig {
               blinkPattern: rng() > 0.7 ? { onMs: 2000, offMs: 1000 } : undefined
           });
       }
+  }
+
+  // Bonuses / pickups
+  const rndPos = (): Vec2 => ({ x: 60 + rng() * (width - 120), y: 60 + rng() * (height - 120) });
+  const dataCount = 3 + Math.floor(roomId / 2);
+  for (let i = 0; i < dataCount; i++) room.collectibles.push({ type: 'data', position: rndPos() });
+  // 1-2 intel documents (count toward "Collect Intelligence")
+  const intelCount = 1 + (roomId % 2);
+  for (let i = 0; i < intelCount; i++) room.collectibles.push({ type: 'intel', position: rndPos() });
+  // Support items
+  room.collectibles.push({ type: 'emp', position: rndPos() });
+  if (roomId % 2 === 1 || roomId === 0) room.collectibles.push({ type: 'medkit', position: rndPos() });
+  if (roomId >= 2) room.collectibles.push({ type: 'keycard_blue', position: rndPos() });
+
+  // Decorative "hacker" props (server racks, data cores, consoles)
+  const propTypes: Array<'server' | 'datacore' | 'console' | 'crate'> = ['server', 'datacore', 'console', 'crate'];
+  const propCount = 4 + Math.floor(roomId / 2);
+  for (let i = 0; i < propCount; i++) {
+    const t = propTypes[Math.floor(rng() * propTypes.length)];
+    room.props!.push({ type: t, x: 50 + rng() * (width - 100), y: 50 + rng() * (height - 100) });
   }
 
   // Add Shadows (Shadow Zones)
