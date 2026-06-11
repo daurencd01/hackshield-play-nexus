@@ -4,9 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Spotlight } from '@/components/ui/spotlight';
-import { SplineScene } from '@/components/ui/splite';
-
-const ROBOT_SCENE = 'https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode';
+import { CyberRobot } from '@/components/ui/cyber-robot';
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 const ShieldIcon = () => (
@@ -384,35 +382,15 @@ export default function AuthPage() {
   // ── UI ───────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black text-gray-100 p-3 sm:p-6 font-sans">
-      <Card className="w-full max-w-5xl min-h-[640px] md:h-[660px] bg-black/[0.96] relative overflow-hidden border-gray-800/60 grid grid-cols-1 md:grid-cols-2">
+      <Card className="w-full max-w-5xl md:h-[660px] bg-black/[0.96] relative overflow-hidden border-gray-800/60 grid grid-cols-1 md:grid-cols-2">
         <Spotlight className="-top-40 left-0 md:-top-20 md:left-60" fill="#22d3ee" />
 
-        {/* ── Left: interactive 3D robot + brand (desktop) ── */}
-        <div className="relative hidden md:block">
-          <SplineScene
-            scene={ROBOT_SCENE}
-            className="w-full h-full"
-            fallback={
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full" />
-                  <ShieldIcon />
-                  <div className="relative w-40 h-40 rounded-3xl bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-[0_0_60px_rgba(6,182,212,0.15)]">
-                    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="4" y="8" width="16" height="12" rx="3" />
-                      <path d="M12 8V4M9 4h6" />
-                      <circle cx="9" cy="14" r="1.3" />
-                      <circle cx="15" cy="14" r="1.3" />
-                      <path d="M9 17.5h6M2 12v3M22 12v3" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            }
-          />
+        {/* ── Robot panel: top band on mobile, left column on desktop ── */}
+        <div className="relative h-[260px] sm:h-[340px] md:h-auto border-b border-gray-800/40 md:border-b-0 md:border-r">
+          <CyberRobot className="absolute inset-0" />
 
-          {/* Brand overlay */}
-          <div className="absolute top-8 left-8 z-10 pointer-events-none">
+          {/* Brand overlay (desktop) */}
+          <div className="hidden md:block absolute top-8 left-8 z-10 pointer-events-none">
             <div className="flex items-center gap-2 text-cyan-400">
               <ShieldIcon />
               <span className="font-bold text-white text-lg tracking-tight">HackShield Nexus</span>
@@ -422,8 +400,8 @@ export default function AuthPage() {
             </p>
           </div>
 
-          {/* Terminal tag */}
-          <div className="absolute bottom-6 left-8 z-10 text-[10px] font-mono text-gray-600 pointer-events-none space-y-0.5">
+          {/* Terminal tag (desktop) */}
+          <div className="hidden md:block absolute bottom-6 left-8 z-10 text-[10px] font-mono text-gray-600 pointer-events-none space-y-0.5">
             <p>HACKSHIELD NEXUS SECURE TERMINAL v3.0</p>
             <p>ENCRYPTION: AES-256 GCM <span className="text-emerald-600">ACTIVE</span></p>
           </div>

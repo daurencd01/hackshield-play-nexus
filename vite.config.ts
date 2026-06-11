@@ -84,9 +84,6 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // The Spline 3D runtime is large and only needed on /auth (loaded lazily
-        // and requires network for the scene anyway) — don't precache it offline.
-        globIgnores: ['**/spline-*.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -141,12 +138,6 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
-  optimizeDeps: {
-    // Pre-bundle Spline at server start so it shares the app's React instance.
-    // Without this, the lazy() dynamic import is optimized on-the-fly and ends up
-    // with a separate (null) React, causing "Cannot read properties of null (useRef)".
-    include: ["@splinetool/react-spline", "@splinetool/runtime", "react", "react-dom"],
-  },
   build: {
     target: 'es2020',
     cssCodeSplit: true,
@@ -157,9 +148,6 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          if (id.includes('node_modules/@splinetool')) {
-            return 'spline';
-          }
           if (id.includes('node_modules/react/') ||
               id.includes('node_modules/react-dom/') ||
               id.includes('node_modules/scheduler/')) {
