@@ -1,0 +1,191 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 25% 7%;
+    --foreground: 180 100% 95%;
+    --card: 230 20% 10%;
+    --card-foreground: 180 100% 95%;
+    --popover: 230 20% 10%;
+    --popover-foreground: 180 100% 95%;
+    --primary: 150 100% 50%;
+    --primary-foreground: 230 25% 7%;
+    --secondary: 270 100% 65%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 230 15% 18%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 200 100% 55%;
+    --accent-foreground: 230 25% 7%;
+    --destructive: 0 85% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 230 20% 20%;
+    --input: 230 20% 15%;
+    --ring: 150 100% 50%;
+    --radius: 0.5rem;
+
+    --neon-green: 150 100% 50%;
+    --neon-purple: 270 100% 65%;
+    --neon-blue: 200 100% 55%;
+    --neon-cyan: 180 100% 50%;
+    --neon-pink: 320 100% 60%;
+    --neon-yellow: 50 100% 55%;
+
+    --sidebar-background: 230 25% 7%;
+    --sidebar-foreground: 180 100% 95%;
+    --sidebar-primary: 150 100% 50%;
+    --sidebar-primary-foreground: 230 25% 7%;
+    --sidebar-accent: 230 15% 18%;
+    --sidebar-accent-foreground: 180 100% 95%;
+    --sidebar-border: 230 20% 20%;
+    --sidebar-ring: 150 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Rajdhani', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', sans-serif;
+  }
+  code, .font-mono {
+    font-family: 'Share Tech Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .text-glow-green {
+    text-shadow: 0 0 10px hsl(var(--neon-green) / 0.7), 0 0 30px hsl(var(--neon-green) / 0.4);
+  }
+  .text-glow-purple {
+    text-shadow: 0 0 10px hsl(var(--neon-purple) / 0.7), 0 0 30px hsl(var(--neon-purple) / 0.4);
+  }
+  .text-glow-blue {
+    text-shadow: 0 0 10px hsl(var(--neon-blue) / 0.7), 0 0 30px hsl(var(--neon-blue) / 0.4);
+  }
+  .box-glow-green {
+    box-shadow: 0 0 15px hsl(var(--neon-green) / 0.3), inset 0 0 15px hsl(var(--neon-green) / 0.05);
+  }
+  .box-glow-purple {
+    box-shadow: 0 0 15px hsl(var(--neon-purple) / 0.3), inset 0 0 15px hsl(var(--neon-purple) / 0.05);
+  }
+  .box-glow-blue {
+    box-shadow: 0 0 15px hsl(var(--neon-blue) / 0.3), inset 0 0 15px hsl(var(--neon-blue) / 0.05);
+  }
+  .cyber-grid {
+    background-image:
+      linear-gradient(hsl(var(--neon-green) / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--neon-green) / 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(var(--neon-green) / 0.015) 2px,
+      hsl(var(--neon-green) / 0.015) 4px
+    );
+    pointer-events: none;
+  }
+}
+
+@layer base {
+  /* Запрет масштабирования и смены ориентации жестами */
+  html, body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  /* Разрешаем выделение в input/textarea */
+  input, textarea {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  /* Safe area переменные */
+  :root {
+    --safe-top: env(safe-area-inset-top, 0);
+    --safe-bottom: env(safe-area-inset-bottom, 0);
+    --safe-left: env(safe-area-inset-left, 0);
+    --safe-right: env(safe-area-inset-right, 0);
+  }
+
+  /* Скролбар (тонкий, в стиле приложения) */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 136, 0.3);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 136, 0.5);
+  }
+
+  /* Убираем синюю подсветку при тапе на iOS */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Для кнопок: активное состояние при нажатии */
+  button {
+    -webkit-touch-callout: none;
+  }
+}
+
+@layer utilities {
+  /* Safe area utilities */
+  .pt-safe { padding-top: var(--safe-top); }
+  .pb-safe { padding-bottom: var(--safe-bottom); }
+  .pl-safe { padding-left: var(--safe-left); }
+  .pr-safe { padding-right: var(--safe-right); }
+
+  .h-screen-safe {
+    height: calc(100vh - var(--safe-top) - var(--safe-bottom));
+    height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  }
+
+  /* Анимация при тапе */
+  .tap-scale {
+    @apply active:scale-95 transition-transform;
+  }
+
+  /* Glassmorphism */
+  .glass {
+    @apply bg-black/60 backdrop-blur-xl border border-white/10;
+  }
+
+  .glass-cyber {
+    @apply bg-black/70 backdrop-blur-xl border border-[#00ff88]/30;
+  }
+  
+  .text-cyber-green {
+    color: #00ff88;
+  }
+  
+  .bg-cyber-green {
+    background-color: #00ff88;
+  }
+  
+  .border-cyber-green {
+    border-color: #00ff88;
+  }
+}

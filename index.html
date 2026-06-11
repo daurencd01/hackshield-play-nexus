@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+
+  <!-- Critical mobile-first viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+
+  <!-- PWA / iOS / Android -->
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#00ff88" media="(prefers-color-scheme: light)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="HackShield" />
+  <meta name="application-name" content="HackShield" />
+  <meta name="format-detection" content="telephone=no" />
+
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="mask-icon" href="/masked-icon.svg" color="#00ff88" />
+
+  <!-- Splash screens for iOS -->
+  <link rel="apple-touch-startup-image" href="/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
+
+  <!-- Security headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+  <!-- CSP -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'wasm-unsafe-eval';
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' data: https://fonts.gstatic.com;
+    img-src 'self' data: https: blob:;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co ws: wss:;
+    media-src 'self' blob:;
+    worker-src 'self' blob:;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    manifest-src 'self';
+  ">
+
+
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <title>HackShield Play Nexus</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

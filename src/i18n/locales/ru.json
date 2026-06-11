@@ -1,0 +1,143 @@
+{
+  "translation": {
+    "nav": {
+      "hq": "ШТАБ",
+      "missions": "Миссии",
+      "2d_game": "2D Игра",
+      "arena": "Арена",
+      "profile": "Профиль",
+      "badges": "Значки"
+    },
+    "header": {
+      "lvl": "УРВ",
+      "xp": "XP"
+    },
+    "auth": {
+      "title": "Безопасный доступ",
+      "step_1_desc": "Введите учетные данные для доступа.",
+      "step_2_desc": "Подтвердите вашу личность для продолжения.",
+      "email_req": "Требуется Email",
+      "email_inv": "Неверный формат Email",
+      "otp_sent": "Код подтверждения отправлен на ваш email.",
+      "otp_req": "Требуется код",
+      "otp_len": "Код должен состоять из 6 цифр",
+      "auth_success": "Аутентификация успешна! Доступ разрешен.",
+      "auth_fail": "Неверный код. В доступе отказано.",
+      "otp_new_sent": "Отправлен новый код.",
+      "operator_email": "Email Оператора",
+      "placeholder_email": "operative@hackshield.com",
+      "btn_init": "Инициализировать",
+      "btn_init_loading": "Инициализация...",
+      "link_established": "Соединение установлено с",
+      "btn_change": "Изменить",
+      "verification_code": "Код подтверждения",
+      "btn_auth": "Аутентифицировать",
+      "btn_auth_loading": "Проверка...",
+      "btn_req_new": "Запросить новый код",
+      "terminal_v": "HACKSHIELD NEXUS SECURE TERMINAL v2.4.1",
+      "encryption": "ШИФРОВАНИЕ: AES-256 GCM",
+      "active": "АКТИВНО"
+    },
+    "missions": {
+      "catalog": "▸ КАТАЛОГ МИССИЙ",
+      "chapter": "Глава {{chapter}}",
+      "all": "Все миссии",
+      "replay": "Переиграть",
+      "briefing": "Briefing",
+      "start": "🎯 НАЧАТЬ МИССИЮ",
+      "completed": "МИССИЯ ЗАВЕРШЕНА"
+    },
+    "mission_card": {
+      "ch": "ГЛ.{{chapter}}",
+      "difficulty": {
+        "easy": "ЛЁГКИЙ",
+        "medium": "СРЕДНИЙ",
+        "hard": "СЛОЖНЫЙ",
+        "legendary": "ЛЕГЕНДА"
+      }
+    },
+    "common": {
+      "back": "Назад"
+    },
+    "game": {
+      "alarm_triggered": "СИГНАЛИЗАЦИЯ СРАБОТАЛА",
+      "alarm_warning": "ОБНАРУЖЕНА УГРОЗА БЕЗОПАСНОСТИ",
+      "health": "ЗДОРОВЬЕ",
+      "cooldown": "ПЕРЕЗАРЯДКА",
+      "stunned": "ОГЛУШЕН",
+      "hacked": "ВЗЛОМАНО",
+      "hacking": "ВЗЛОМ...",
+      "exit_portal": "ТОЧКА ЭВАКУАЦИИ",
+      "keys_collected": "КЛЮЧЕЙ СОБРАНО",
+      "score": "СЧЁТ"
+    },
+    "quiz": {
+      "title": "ПРОВЕРКА ЗНАНИЙ",
+      "question": "ВОПРОС",
+      "correct": "ОТВЕТ ВЕРЕН!",
+      "incorrect": "ОТВЕТ НЕВЕРЕН",
+      "next": "СЛЕДУЮЩИЙ ВОПРОС",
+      "xp_reward": "+{{xp}} XP ПОЛУЧЕНО",
+      "finish": "ЗАВЕРШИТЬ ТЕСТ",
+      "submitting": "ОТПРАВКА ОТВЕТА...",
+      "hint": "ПОДСКАЗКА",
+      "time_left": "ВРЕМЯ:"
+    },
+    "multiplayer": {
+      "lobby_title": "КООПЕРАТИВНЫЙ ЛОББИ",
+      "create_room": "СОЗДАТЬ СЕССИЮ",
+      "join_room": "ПРИСОЕДИНИТЬСЯ",
+      "room_code": "КОД КОМНАТЫ",
+      "players_connected": "ИГРОКОВ В СЕТИ",
+      "waiting_host": "ОЖИДАНИЕ ХОСТА...",
+      "status_ready": "ГОТОВ",
+      "status_joined": "ПОДКЛЮЧИЛСЯ",
+      "leave_lobby": "ВЫЙТИ ИЗ ЛОББИ",
+      "connection_lost": "СОЕДИНЕНИЕ ПОТЕРЯНО"
+    },
+    "leaderboard": {
+      "global_title": "ТАБЛИЦА ЛИДЕРОВ",
+      "rank": "РАНГ",
+      "username": "ПОЛЬЗОВАТЕЛЬ",
+      "level": "УРОВЕНЬ",
+      "xp": "ОПЫТ (XP)",
+      "online": "В СЕТИ",
+      "offline": "ВНЕ СЕТИ",
+      "search_placeholder": "Поиск хакеров...",
+      "no_results": "Пользователи не найдены",
+      "my_rank": "МОЁ МЕСТО"
+    },
+    "profile": {
+      "edit": "РЕДАКТИРОВАТЬ ПРОФИЛЬ",
+      "bio": "О СЕБЕ",
+      "save": "СОХРАНИТЬ ИЗМЕНЕНИЯ",
+      "cancel": "ОТМЕНА",
+      "xp_needed": "ДО СЛЕДУЮЩЕГО УРОВНЯ ОСТАЛОСЬ {{xp}} XP",
+      "completed_missions_count": "ЗАВЕРШЕНО МИССИЙ",
+      "total_xp": "ВСЕГО ОПЫТА",
+      "created_at": "ЗАРЕГИСТРИРОВАН",
+      "role_admin": "АДМИНИСТРАТОР",
+      "role_operative": "ОПЕРАТИВНИК"
+    },
+    "dashboard": {
+      "welcome": "ДОБРО ПОЖАЛОВАТЬ",
+      "start_game": "Начать игру",
+      "simulator_sub": "2D Симулятор",
+      "missions": "Миссии",
+      "missions_sub": "12 доступно",
+      "arena": "Арена",
+      "arena_sub": "Топ оперативников",
+      "daily_title": "Ежедневный челлендж",
+      "daily_task": "Распознай 5 фишинговых писем",
+      "daily_reward": "Награда: +200 XP",
+      "btn_continue": "Продолжить",
+      "recent_activity": "Последняя активность",
+      "act_mission": "Миссия 'Фишинг 2.0' завершена",
+      "act_mission_time": "2 часа назад",
+      "act_badge": "Получен бейдж 'Форензик'",
+      "act_badge_time": "Вчера",
+      "act_rooms": "Пройдено 3 комнаты в 2D игре",
+      "act_rooms_time": "2 дня назад"
+    }
+  }
+}

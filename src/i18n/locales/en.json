@@ -1,0 +1,143 @@
+{
+  "translation": {
+    "nav": {
+      "hq": "HQ",
+      "missions": "Missions",
+      "2d_game": "2D Game",
+      "arena": "Arena",
+      "profile": "Profile",
+      "badges": "Badges"
+    },
+    "header": {
+      "lvl": "LVL",
+      "xp": "XP"
+    },
+    "auth": {
+      "title": "Secure Access",
+      "step_1_desc": "Enter your credentials to access the nexus.",
+      "step_2_desc": "Verify your identity to proceed.",
+      "email_req": "Email is required",
+      "email_inv": "Invalid email format",
+      "otp_sent": "Verification code sent to your email.",
+      "otp_req": "Verification code is required",
+      "otp_len": "Code must be exactly 6 digits",
+      "auth_success": "Authentication successful! Access granted.",
+      "auth_fail": "Invalid verification code. Access denied.",
+      "otp_new_sent": "A new verification code has been sent.",
+      "operator_email": "Operator Email",
+      "placeholder_email": "operative@hackshield.com",
+      "btn_init": "Initialize Link",
+      "btn_init_loading": "Initializing...",
+      "link_established": "Link established with",
+      "btn_change": "Change",
+      "verification_code": "Verification Code",
+      "btn_auth": "Authenticate",
+      "btn_auth_loading": "Verifying...",
+      "btn_req_new": "Request New Code",
+      "terminal_v": "HACKSHIELD NEXUS SECURE TERMINAL v2.4.1",
+      "encryption": "ENCRYPTION: AES-256 GCM",
+      "active": "ACTIVE"
+    },
+    "missions": {
+      "catalog": "▸ MISSIONS CATALOG",
+      "chapter": "Chapter {{chapter}}",
+      "all": "All missions",
+      "replay": "Replay",
+      "briefing": "Briefing",
+      "start": "🎯 START MISSION",
+      "completed": "MISSION COMPLETED"
+    },
+    "mission_card": {
+      "ch": "CH.{{chapter}}",
+      "difficulty": {
+        "easy": "EASY",
+        "medium": "MEDIUM",
+        "hard": "HARD",
+        "legendary": "LEGENDARY"
+      }
+    },
+    "common": {
+      "back": "Back"
+    },
+    "game": {
+      "alarm_triggered": "ALARM TRIGGERED",
+      "alarm_warning": "SECURITY BREACH DETECTED",
+      "health": "HEALTH",
+      "cooldown": "COOLDOWN",
+      "stunned": "STUNNED",
+      "hacked": "HACKED",
+      "hacking": "HACKING...",
+      "exit_portal": "EVACUATION POINT",
+      "keys_collected": "KEYS COLLECTED",
+      "score": "SCORE"
+    },
+    "quiz": {
+      "title": "KNOWLEDGE VERIFICATION",
+      "question": "QUESTION",
+      "correct": "CORRECT ANSWER!",
+      "incorrect": "INCORRECT ANSWER",
+      "next": "NEXT QUESTION",
+      "xp_reward": "+{{xp}} XP GAINED",
+      "finish": "FINISH QUIZ",
+      "submitting": "SUBMITTING...",
+      "hint": "HINT",
+      "time_left": "TIME LEFT:"
+    },
+    "multiplayer": {
+      "lobby_title": "COOPERATIVE LOBBY",
+      "create_room": "CREATE SESSION",
+      "join_room": "JOIN SESSION",
+      "room_code": "ROOM CODE",
+      "players_connected": "PLAYERS ONLINE",
+      "waiting_host": "WAITING FOR HOST...",
+      "status_ready": "READY",
+      "status_joined": "JOINED",
+      "leave_lobby": "LEAVE LOBBY",
+      "connection_lost": "CONNECTION LOST"
+    },
+    "leaderboard": {
+      "global_title": "GLOBAL LEADERBOARD",
+      "rank": "RANK",
+      "username": "OPERATIVE",
+      "level": "LEVEL",
+      "xp": "EXPERIENCE (XP)",
+      "online": "ONLINE",
+      "offline": "OFFLINE",
+      "search_placeholder": "Search operatives...",
+      "no_results": "No operatives found",
+      "my_rank": "MY RANK"
+    },
+    "profile": {
+      "edit": "EDIT PROFILE",
+      "bio": "BIO",
+      "save": "SAVE CHANGES",
+      "cancel": "CANCEL",
+      "xp_needed": "{{xp}} XP TO NEXT LEVEL",
+      "completed_missions_count": "MISSIONS COMPLETED",
+      "total_xp": "TOTAL XP",
+      "created_at": "JOINED NEXUS",
+      "role_admin": "ADMINISTRATOR",
+      "role_operative": "OPERATIVE"
+    },
+    "dashboard": {
+      "welcome": "WELCOME",
+      "start_game": "Start Game",
+      "simulator_sub": "2D Simulator",
+      "missions": "Missions",
+      "missions_sub": "12 available",
+      "arena": "Arena",
+      "arena_sub": "Top Operatives",
+      "daily_title": "Daily Challenge",
+      "daily_task": "Identify 5 phishing emails",
+      "daily_reward": "Reward: +200 XP",
+      "btn_continue": "Continue",
+      "recent_activity": "Recent Activity",
+      "act_mission": "Mission 'Phishing 2.0' Completed",
+      "act_mission_time": "2 hours ago",
+      "act_badge": "Earned 'Forensics' badge",
+      "act_badge_time": "Yesterday",
+      "act_rooms": "Cleared 3 rooms in 2D game",
+      "act_rooms_time": "2 days ago"
+    }
+  }
+}
