@@ -50,7 +50,7 @@ export function CyberRobot({ className = '' }: { className?: string }) {
       {/* Robot — floats up/down; head group reacts to cursor */}
       <svg
         viewBox="0 0 220 260"
-        className="relative w-[62%] max-w-[260px] animate-float drop-shadow-[0_0_25px_rgba(34,211,238,0.25)]"
+        className="relative w-[62%] max-w-[260px] md:w-auto md:max-w-none md:h-[82%] animate-float drop-shadow-[0_0_25px_rgba(34,211,238,0.25)]"
         fill="none"
         style={{ transform: `translate(${tilt.x * 8}px, ${tilt.y * 6}px)`, transition: 'transform 120ms ease-out' }}
         aria-hidden
