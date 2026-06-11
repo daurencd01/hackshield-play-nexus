@@ -32,6 +32,14 @@ const UserIcon = () => (
   </svg>
 );
 
+const IdIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="18" height="14" x="3" y="5" rx="2"/>
+    <circle cx="9" cy="11" r="2"/>
+    <path d="M15 9h3M15 13h3M7 16.5c.5-1.5 3.5-1.5 4 0"/>
+  </svg>
+);
+
 const EyeIcon = ({ open }: { open: boolean }) => open ? (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
@@ -60,33 +68,53 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   rightElement?: React.ReactNode;
 }
 
-const Field = ({ label, icon, error, rightElement, ...props }: InputProps) => (
-  <div className="space-y-1.5">
-    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">
-      {label}
-    </label>
-    <div className="relative">
-      <span className="absolute inset-y-0 left-3 flex items-center text-gray-500 pointer-events-none">
-        {icon}
-      </span>
-      <input
-        {...props}
-        className={`w-full pl-9 ${rightElement ? 'pr-10' : 'pr-4'} py-3 bg-[#0d1421] border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/60 transition-all text-sm
-          ${error ? 'border-red-500/60' : 'border-gray-700/80 hover:border-gray-600'}
-          ${props.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-      />
-      {rightElement && (
-        <span className="absolute inset-y-0 right-3 flex items-center">
-          {rightElement}
+const Field = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ label, icon, error, rightElement, ...props }, ref) => (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">
+        {label}
+      </label>
+      <div className="relative">
+        <span className="absolute inset-y-0 left-3 flex items-center text-gray-500 pointer-events-none">
+          {icon}
         </span>
-      )}
+        <input
+          ref={ref}
+          {...props}
+          className={`w-full pl-9 ${rightElement ? 'pr-10' : 'pr-4'} py-3 bg-[#0d1421] border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/60 transition-all text-sm
+            ${error ? 'border-red-500/60' : 'border-gray-700/80 hover:border-gray-600'}
+            ${props.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        />
+        {rightElement && (
+          <span className="absolute inset-y-0 right-3 flex items-center">
+            {rightElement}
+          </span>
+        )}
+      </div>
+      {error && <p className="text-xs text-red-400 pl-1">{error}</p>}
     </div>
-    {error && <p className="text-xs text-red-400 pl-1">{error}</p>}
-  </div>
+  ),
 );
+Field.displayName = 'Field';
 
 // ── Main Component ─────────────────────────────────────────────────────────
 type Tab = 'login' | 'register';
+type RegStep = 'username' | 'fullName' | 'email' | 'password';
+
+// Order of wizard steps (OTP confirmation is handled separately)
+const REG_STEPS: RegStep[] = ['username', 'fullName', 'email', 'password'];
+const STEP_TITLES: Record<RegStep, string> = {
+  username: 'Выберите никнейм',
+  fullName: 'Как вас зовут?',
+  email: 'Ваша почта',
+  password: 'Придумайте пароль',
+};
+const STEP_HINTS: Record<RegStep, string> = {
+  username: 'Под этим именем вас увидят другие оперативники',
+  fullName: 'Отображается в профиле и рейтингах',
+  email: 'На неё придёт код подтверждения',
+  password: 'Минимум 6 символов',
+};
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -99,7 +127,8 @@ export default function AuthPage() {
   const redirectingRef = useRef(false);
   const isVerifyingOtpRef = useRef(false);
 
-  // OTP Verification form
+  // Registration wizard
+  const [regStep, setRegStep] = useState<RegStep>('username');
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otpToken, setOtpToken] = useState('');
   const [otpError, setOtpError] = useState('');
@@ -120,6 +149,15 @@ export default function AuthPage() {
   const [regPassword, setRegPassword] = useState('');
   const [regConfirm, setRegConfirm] = useState('');
   const [regErrors, setRegErrors] = useState<Record<string, string>>({});
+
+  // Autofocus the active step's input
+  const stepInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (tab === 'register' && !showOtpInput && !successMsg) {
+      const t = setTimeout(() => stepInputRef.current?.focus(), 60);
+      return () => clearTimeout(t);
+    }
+  }, [tab, regStep, showOtpInput, successMsg]);
 
   // ── Redirect if already signed in ─────────────────────────────────────
   useEffect(() => {
@@ -144,6 +182,7 @@ export default function AuthPage() {
     setSuccessMsg('');
     setLoginErrors({});
     setRegErrors({});
+    setRegStep('username');
     setShowOtpInput(false);
     setOtpToken('');
     setOtpError('');
@@ -151,6 +190,30 @@ export default function AuthPage() {
 
   // ── Validation helpers ──────────────────────────────────────────────────
   const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+  // Validate a single wizard step. Returns true if step is valid.
+  const validateStep = (step: RegStep): boolean => {
+    const errs: Record<string, string> = {};
+    if (step === 'username') {
+      const u = regUsername.trim();
+      if (!u) errs.username = 'Введите никнейм';
+      else if (u.length < 3) errs.username = 'Никнейм минимум 3 символа';
+      else if (u.length > 20) errs.username = 'Никнейм максимум 20 символов';
+      else if (!/^[a-zA-Z0-9_]+$/.test(u)) errs.username = 'Только латиница, цифры и _';
+    } else if (step === 'fullName') {
+      if (!regFullName.trim()) errs.fullName = 'Введите имя';
+    } else if (step === 'email') {
+      if (!regEmail.trim()) errs.email = 'Введите email';
+      else if (!validateEmail(regEmail.trim())) errs.email = 'Некорректный email';
+    } else if (step === 'password') {
+      if (!regPassword) errs.password = 'Введите пароль';
+      else if (regPassword.length < 6) errs.password = 'Минимум 6 символов';
+      if (!regConfirm) errs.confirm = 'Подтвердите пароль';
+      else if (regPassword !== regConfirm) errs.confirm = 'Пароли не совпадают';
+    }
+    setRegErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   // ── LOGIN ───────────────────────────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
@@ -169,12 +232,11 @@ export default function AuthPage() {
     try {
       const result = await signIn(loginEmail.trim().toLowerCase(), loginPassword);
       if (!result.success) {
-        // Human-readable Russian errors
         const msg = result.error || '';
         if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
           setGlobalError('Неверный email или пароль.');
         } else if (msg.includes('Email not confirmed') || msg.includes('email_not_confirmed')) {
-          setGlobalError('Почта не подтверждена. Пожалуйста, введите код подтверждения.');
+          setGlobalError('Почта не подтверждена. Введите код подтверждения.');
           setRegEmail(loginEmail.trim().toLowerCase());
           setTab('register');
           setShowOtpInput(true);
@@ -190,31 +252,38 @@ export default function AuthPage() {
     }
   };
 
-  // ── REGISTER ─────────────────────────────────────────────────────────────
-  const handleRegister = async (e: React.FormEvent) => {
+  // ── Wizard navigation ─────────────────────────────────────────────────────
+  const stepIndex = REG_STEPS.indexOf(regStep);
+
+  const goNext = (e: React.FormEvent) => {
     e.preventDefault();
+    setGlobalError('');
+    if (!validateStep(regStep)) return;
+    if (stepIndex < REG_STEPS.length - 1) {
+      setRegStep(REG_STEPS[stepIndex + 1]);
+    } else {
+      handleRegister();
+    }
+  };
+
+  const goBack = () => {
+    setGlobalError('');
+    setRegErrors({});
+    if (stepIndex > 0) setRegStep(REG_STEPS[stepIndex - 1]);
+  };
+
+  // ── REGISTER (final submit after last step) ───────────────────────────────
+  const handleRegister = async () => {
     setGlobalError('');
     setSuccessMsg('');
 
-    const errs: Record<string, string> = {};
-    if (!regEmail.trim()) errs.email = 'Введите email';
-    else if (!validateEmail(regEmail.trim())) errs.email = 'Некорректный email';
-
-    if (!regUsername.trim()) errs.username = 'Введите никнейм';
-    else if (regUsername.trim().length < 3) errs.username = 'Никнейм минимум 3 символа';
-    else if (regUsername.trim().length > 20) errs.username = 'Никнейм максимум 20 символов';
-    else if (!/^[a-zA-Z0-9_]+$/.test(regUsername.trim())) errs.username = 'Только латиница, цифры и _';
-
-    if (!regFullName.trim()) errs.fullName = 'Введите имя';
-
-    if (!regPassword) errs.password = 'Введите пароль';
-    else if (regPassword.length < 6) errs.password = 'Минимум 6 символов';
-
-    if (!regConfirm) errs.confirm = 'Подтвердите пароль';
-    else if (regPassword !== regConfirm) errs.confirm = 'Пароли не совпадают';
-
-    setRegErrors(errs);
-    if (Object.keys(errs).length) return;
+    // Re-validate everything before sending to the server
+    for (const step of REG_STEPS) {
+      if (!validateStep(step)) {
+        setRegStep(step);
+        return;
+      }
+    }
 
     setIsLoading(true);
     try {
@@ -230,7 +299,8 @@ export default function AuthPage() {
         if (msg.includes('already registered') || msg.includes('already been registered')) {
           setGlobalError('Этот email уже зарегистрирован. Войдите или восстановите пароль.');
         } else if (msg.includes('никнейм') || msg.includes('Этот никнейм')) {
-          setGlobalError(msg);
+          setRegStep('username');
+          setRegErrors({ username: msg });
         } else {
           setGlobalError(msg || 'Ошибка регистрации. Попробуйте ещё раз.');
         }
@@ -269,7 +339,6 @@ export default function AuthPage() {
       const result = await verifyOtp(regEmail.trim().toLowerCase(), otpToken.trim());
       if (!result.success) {
         isVerifyingOtpRef.current = false;
-        // Human-readable errors
         const msg = result.error || '';
         if (msg.includes('invalid_grant') || msg.includes('Invalid token') || msg.includes('token has expired')) {
           setOtpError('Неверный или истекший код.');
@@ -277,12 +346,13 @@ export default function AuthPage() {
           setOtpError(msg || 'Неверный код подтверждения. Попробуйте ещё раз.');
         }
       } else {
-        // Success
+        // Sign out the temporary verification session, force a clean login
         await supabase.auth.signOut();
         isVerifyingOtpRef.current = false;
-        
+
         setShowOtpInput(false);
-        setSuccessMsg('Аккаунт успешно подтвержден! Теперь вы можете войти в систему.');
+        setRegStep('username');
+        setSuccessMsg('Аккаунт подтверждён! Теперь войдите со своей почтой и паролем.');
         setLoginEmail(regEmail);
         setLoginPassword('');
         setTab('login');
@@ -304,6 +374,8 @@ export default function AuthPage() {
     );
   }
 
+  const primaryBtn = "w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg shadow-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+
   // ── UI ───────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#080d16] text-gray-100 p-4 font-sans">
@@ -311,13 +383,11 @@ export default function AuthPage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-cyan-900/8 blur-[160px] rounded-full" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-900/8 blur-[160px] rounded-full" />
-        {/* Grid pattern */}
         <div className="absolute inset-0 opacity-[0.015]"
           style={{ backgroundImage: 'linear-gradient(rgba(6,182,212,1) 1px,transparent 1px),linear-gradient(90deg,rgba(6,182,212,1) 1px,transparent 1px)', backgroundSize: '60px 60px' }} />
       </div>
 
       <div className="w-full max-w-md relative z-10">
-        {/* Card */}
         <div className="bg-[#0f1923]/90 backdrop-blur-xl border border-gray-800/60 rounded-2xl shadow-2xl overflow-hidden">
 
           {/* Header */}
@@ -398,11 +468,7 @@ export default function AuthPage() {
                   }
                 />
 
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 px-4 mt-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg shadow-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <button type="submit" disabled={isLoading} className={`${primaryBtn} mt-2`}>
                   {isLoading ? <><Spinner /><span>Вход...</span></> : <span>Войти в систему</span>}
                 </button>
 
@@ -415,109 +481,159 @@ export default function AuthPage() {
               </form>
             )}
 
-            {/* ── REGISTER FORM ──────────────────────────────── */}
+            {/* ── REGISTER WIZARD ────────────────────────────── */}
             {tab === 'register' && !successMsg && !showOtpInput && (
-              <form onSubmit={handleRegister} className="space-y-4" noValidate>
-                <Field
-                  label="Email"
-                  icon={<MailIcon />}
-                  id="reg-email"
-                  type="email"
-                  autoComplete="email"
-                  value={regEmail}
-                  onChange={e => { setRegEmail(e.target.value); setRegErrors(p => ({...p, email: ''})); }}
-                  placeholder="operator@hackshield.com"
-                  disabled={isLoading}
-                  error={regErrors.email}
-                />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field
-                    label="Никнейм"
-                    icon={<UserIcon />}
-                    id="reg-username"
-                    type="text"
-                    autoComplete="username"
-                    value={regUsername}
-                    onChange={e => { setRegUsername(e.target.value); setRegErrors(p => ({...p, username: ''})); }}
-                    placeholder="cipher_x"
-                    disabled={isLoading}
-                    error={regErrors.username}
-                  />
-                  <Field
-                    label="Имя"
-                    icon={<UserIcon />}
-                    id="reg-fullname"
-                    type="text"
-                    autoComplete="name"
-                    value={regFullName}
-                    onChange={e => { setRegFullName(e.target.value); setRegErrors(p => ({...p, fullName: ''})); }}
-                    placeholder="Alex Cipher"
-                    disabled={isLoading}
-                    error={regErrors.fullName}
-                  />
+              <div className="space-y-5">
+                {/* Step progress */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-cyan-400 font-semibold uppercase tracking-widest">
+                      Шаг {stepIndex + 1} из {REG_STEPS.length}
+                    </span>
+                    <span className="text-gray-600">{STEP_TITLES[regStep]}</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {REG_STEPS.map((s, i) => (
+                      <div key={s} className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                        i <= stepIndex ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : 'bg-gray-700/70'
+                      }`} />
+                    ))}
+                  </div>
                 </div>
 
-                <Field
-                  label="Пароль"
-                  icon={<LockIcon />}
-                  id="reg-password"
-                  type={showPass ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={regPassword}
-                  onChange={e => { setRegPassword(e.target.value); setRegErrors(p => ({...p, password: ''})); }}
-                  placeholder="Минимум 6 символов"
-                  disabled={isLoading}
-                  error={regErrors.password}
-                  rightElement={
-                    <button type="button" onClick={() => setShowPass(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
-                      <EyeIcon open={showPass} />
-                    </button>
-                  }
-                />
-                <Field
-                  label="Подтверждение пароля"
-                  icon={<LockIcon />}
-                  id="reg-confirm"
-                  type={showConfirm ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={regConfirm}
-                  onChange={e => { setRegConfirm(e.target.value); setRegErrors(p => ({...p, confirm: ''})); }}
-                  placeholder="Повторите пароль"
-                  disabled={isLoading}
-                  error={regErrors.confirm}
-                  rightElement={
-                    <button type="button" onClick={() => setShowConfirm(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
-                      <EyeIcon open={showConfirm} />
-                    </button>
-                  }
-                />
-
-                {/* Password strength indicator */}
-                {regPassword && (
-                  <div className="space-y-1">
-                    <div className="flex gap-1">
-                      {[1,2,3,4].map(i => (
-                        <div key={i} className={`h-1 flex-1 rounded-full transition-all ${
-                          regPassword.length >= i * 3
-                            ? i <= 1 ? 'bg-red-500' : i <= 2 ? 'bg-yellow-500' : i <= 3 ? 'bg-blue-500' : 'bg-emerald-500'
-                            : 'bg-gray-700'
-                        }`} />
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      {regPassword.length < 6 ? 'Слишком короткий' : regPassword.length < 9 ? 'Слабый' : regPassword.length < 12 ? 'Средний' : 'Надёжный'}
-                    </p>
+                <form onSubmit={goNext} className="space-y-4" noValidate>
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">{STEP_TITLES[regStep]}</h3>
+                    <p className="text-gray-500 text-xs mt-0.5">{STEP_HINTS[regStep]}</p>
                   </div>
-                )}
 
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 px-4 mt-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg shadow-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? <><Spinner /><span>Регистрация...</span></> : <span>Создать аккаунт</span>}
-                </button>
+                  {/* Step: username */}
+                  {regStep === 'username' && (
+                    <Field
+                      ref={stepInputRef}
+                      label="Никнейм"
+                      icon={<UserIcon />}
+                      id="reg-username"
+                      type="text"
+                      autoComplete="username"
+                      value={regUsername}
+                      onChange={e => { setRegUsername(e.target.value); setRegErrors(p => ({...p, username: ''})); }}
+                      placeholder="cipher_x"
+                      disabled={isLoading}
+                      error={regErrors.username}
+                    />
+                  )}
+
+                  {/* Step: full name */}
+                  {regStep === 'fullName' && (
+                    <Field
+                      ref={stepInputRef}
+                      label="Имя"
+                      icon={<IdIcon />}
+                      id="reg-fullname"
+                      type="text"
+                      autoComplete="name"
+                      value={regFullName}
+                      onChange={e => { setRegFullName(e.target.value); setRegErrors(p => ({...p, fullName: ''})); }}
+                      placeholder="Alex Cipher"
+                      disabled={isLoading}
+                      error={regErrors.fullName}
+                    />
+                  )}
+
+                  {/* Step: email */}
+                  {regStep === 'email' && (
+                    <Field
+                      ref={stepInputRef}
+                      label="Email"
+                      icon={<MailIcon />}
+                      id="reg-email"
+                      type="email"
+                      autoComplete="email"
+                      value={regEmail}
+                      onChange={e => { setRegEmail(e.target.value); setRegErrors(p => ({...p, email: ''})); }}
+                      placeholder="operator@hackshield.com"
+                      disabled={isLoading}
+                      error={regErrors.email}
+                    />
+                  )}
+
+                  {/* Step: password */}
+                  {regStep === 'password' && (
+                    <>
+                      <Field
+                        ref={stepInputRef}
+                        label="Пароль"
+                        icon={<LockIcon />}
+                        id="reg-password"
+                        type={showPass ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        value={regPassword}
+                        onChange={e => { setRegPassword(e.target.value); setRegErrors(p => ({...p, password: ''})); }}
+                        placeholder="Минимум 6 символов"
+                        disabled={isLoading}
+                        error={regErrors.password}
+                        rightElement={
+                          <button type="button" onClick={() => setShowPass(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
+                            <EyeIcon open={showPass} />
+                          </button>
+                        }
+                      />
+                      <Field
+                        label="Подтверждение пароля"
+                        icon={<LockIcon />}
+                        id="reg-confirm"
+                        type={showConfirm ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        value={regConfirm}
+                        onChange={e => { setRegConfirm(e.target.value); setRegErrors(p => ({...p, confirm: ''})); }}
+                        placeholder="Повторите пароль"
+                        disabled={isLoading}
+                        error={regErrors.confirm}
+                        rightElement={
+                          <button type="button" onClick={() => setShowConfirm(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
+                            <EyeIcon open={showConfirm} />
+                          </button>
+                        }
+                      />
+                      {regPassword && (
+                        <div className="space-y-1">
+                          <div className="flex gap-1">
+                            {[1,2,3,4].map(i => (
+                              <div key={i} className={`h-1 flex-1 rounded-full transition-all ${
+                                regPassword.length >= i * 3
+                                  ? i <= 1 ? 'bg-red-500' : i <= 2 ? 'bg-yellow-500' : i <= 3 ? 'bg-blue-500' : 'bg-emerald-500'
+                                  : 'bg-gray-700'
+                              }`} />
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-600">
+                            {regPassword.length < 6 ? 'Слишком короткий' : regPassword.length < 9 ? 'Слабый' : regPassword.length < 12 ? 'Средний' : 'Надёжный'}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Navigation buttons */}
+                  <div className="flex gap-3 pt-1">
+                    {stepIndex > 0 && (
+                      <button
+                        type="button"
+                        onClick={goBack}
+                        disabled={isLoading}
+                        className="px-5 py-3.5 rounded-xl border border-gray-700/80 text-gray-300 hover:text-white hover:border-gray-600 transition-all text-sm font-semibold disabled:opacity-50"
+                      >
+                        ← Назад
+                      </button>
+                    )}
+                    <button type="submit" disabled={isLoading} className={primaryBtn}>
+                      {isLoading
+                        ? <><Spinner /><span>Создание...</span></>
+                        : <span>{stepIndex < REG_STEPS.length - 1 ? 'Далее →' : 'Создать аккаунт'}</span>}
+                    </button>
+                  </div>
+                </form>
 
                 <p className="text-center text-sm text-gray-600">
                   Уже есть аккаунт?{' '}
@@ -525,10 +641,10 @@ export default function AuthPage() {
                     Войти
                   </button>
                 </p>
-              </form>
+              </div>
             )}
 
-            {/* ── OTP VERIFICATION FORM ────────────────────── */}
+            {/* ── OTP VERIFICATION ──────────────────────────── */}
             {tab === 'register' && showOtpInput && (
               <form onSubmit={handleVerifyOtp} className="space-y-5" noValidate>
                 <div className="text-center space-y-2">
@@ -552,6 +668,7 @@ export default function AuthPage() {
                       maxLength={6}
                       pattern="[0-9]*"
                       inputMode="numeric"
+                      autoFocus
                       value={otpToken}
                       onChange={e => {
                         const val = e.target.value.replace(/[^0-9]/g, '');
@@ -567,11 +684,7 @@ export default function AuthPage() {
                   {otpError && <p className="text-xs text-red-400 text-center">{otpError}</p>}
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 px-4 mt-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg shadow-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <button type="submit" disabled={isLoading} className={`${primaryBtn} mt-2`}>
                   {isLoading ? <><Spinner /><span>Проверка...</span></> : <span>Подтвердить код</span>}
                 </button>
 
@@ -583,6 +696,7 @@ export default function AuthPage() {
                       setSuccessMsg('');
                       setOtpToken('');
                       setOtpError('');
+                      setRegStep('password');
                     }}
                     className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
                   >
@@ -590,28 +704,6 @@ export default function AuthPage() {
                   </button>
                 </div>
               </form>
-            )}
-
-            {/* After successful registration with email confirmation */}
-            {tab === 'register' && successMsg && (
-              <div className="text-center space-y-4 py-4">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-2xl">
-                  📧
-                </div>
-                <div>
-                  <h3 className="text-white font-semibold text-lg">Проверьте почту</h3>
-                  <p className="text-gray-400 text-sm mt-2 leading-relaxed">
-                    Письмо отправлено на <span className="text-cyan-400 font-medium">{regEmail}</span>.
-                    Перейдите по ссылке в письме для подтверждения аккаунта.
-                  </p>
-                </div>
-                <button
-                  onClick={() => { setSuccessMsg(''); setRegEmail(''); setRegPassword(''); setRegConfirm(''); setRegUsername(''); setRegFullName(''); switchTab('login'); }}
-                  className="text-sm text-cyan-500 hover:text-cyan-400 transition-colors"
-                >
-                  Вернуться к входу →
-                </button>
-              </div>
             )}
           </div>
 
