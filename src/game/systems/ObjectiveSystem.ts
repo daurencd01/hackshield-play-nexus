@@ -51,10 +51,15 @@ export class ObjectiveSystem {
 
     public updateObjective(id: string, updates: Partial<Objective>) {
         const obj = this.objectives.find(o => o.id === id);
-        if (obj) {
-            Object.assign(obj, updates);
-            this.saveToSupabase();
-        }
+        if (!obj) return;
+        // Skip if nothing actually changes — checkObjectiveProgress() runs every frame,
+        // so without this the same objective would re-save on every tick.
+        const changed = Object.keys(updates).some(k => (obj as any)[k] !== (updates as any)[k]);
+        if (!changed) return;
+        Object.assign(obj, updates);
+        // Persistence is intentionally not called: there is no `mission_progress` table
+        // in the schema (it 404s). Objectives live in-memory for the run; XP is persisted
+        // separately via dataService. Re-enable saveToSupabase() once the table exists.
     }
 
     public failObjective(id: string) {
