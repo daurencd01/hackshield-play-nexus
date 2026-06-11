@@ -116,6 +116,10 @@ export default {
           "33%": { borderColor: "hsl(var(--neon-purple))" },
           "66%": { borderColor: "hsl(var(--neon-blue))" },
         },
+        "spotlight": {
+          "0%": { opacity: "0", transform: "translate(-72%, -62%) scale(0.5)" },
+          "100%": { opacity: "1", transform: "translate(-50%,-40%) scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -125,6 +129,7 @@ export default {
         "glitch": "glitch 0.3s ease-in-out",
         "float": "float 3s ease-in-out infinite",
         "border-flow": "border-flow 3s ease-in-out infinite",
+        "spotlight": "spotlight 2s ease .75s 1 forwards",
       },
     },
   },

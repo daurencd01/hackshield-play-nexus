@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { Card } from '@/components/ui/card';
+import { Spotlight } from '@/components/ui/spotlight';
+import { SplineScene } from '@/components/ui/splite';
+
+const ROBOT_SCENE = 'https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode';
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 const ShieldIcon = () => (
@@ -81,7 +86,7 @@ const Field = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           {...props}
-          className={`w-full pl-9 ${rightElement ? 'pr-10' : 'pr-4'} py-3 bg-[#0d1421] border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/60 transition-all text-sm
+          className={`w-full pl-9 ${rightElement ? 'pr-10' : 'pr-4'} py-3 bg-[#0d1421]/80 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/60 transition-all text-sm
             ${error ? 'border-red-500/60' : 'border-gray-700/80 hover:border-gray-600'}
             ${props.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         />
@@ -368,7 +373,7 @@ export default function AuthPage() {
   // ── Loading screen ───────────────────────────────────────────────────────
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080d16]">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -378,345 +383,377 @@ export default function AuthPage() {
 
   // ── UI ───────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#080d16] text-gray-100 p-4 font-sans">
-      {/* Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-cyan-900/8 blur-[160px] rounded-full" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-900/8 blur-[160px] rounded-full" />
-        <div className="absolute inset-0 opacity-[0.015]"
-          style={{ backgroundImage: 'linear-gradient(rgba(6,182,212,1) 1px,transparent 1px),linear-gradient(90deg,rgba(6,182,212,1) 1px,transparent 1px)', backgroundSize: '60px 60px' }} />
-      </div>
+    <div className="min-h-screen w-full flex items-center justify-center bg-black text-gray-100 p-3 sm:p-6 font-sans">
+      <Card className="w-full max-w-5xl min-h-[640px] md:h-[660px] bg-black/[0.96] relative overflow-hidden border-gray-800/60 grid grid-cols-1 md:grid-cols-2">
+        <Spotlight className="-top-40 left-0 md:-top-20 md:left-60" fill="#22d3ee" />
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-[#0f1923]/90 backdrop-blur-xl border border-gray-800/60 rounded-2xl shadow-2xl overflow-hidden">
+        {/* ── Left: interactive 3D robot + brand (desktop) ── */}
+        <div className="relative hidden md:block">
+          <SplineScene
+            scene={ROBOT_SCENE}
+            className="w-full h-full"
+            fallback={
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full" />
+                  <ShieldIcon />
+                  <div className="relative w-40 h-40 rounded-3xl bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-[0_0_60px_rgba(6,182,212,0.15)]">
+                    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="8" width="16" height="12" rx="3" />
+                      <path d="M12 8V4M9 4h6" />
+                      <circle cx="9" cy="14" r="1.3" />
+                      <circle cx="15" cy="14" r="1.3" />
+                      <path d="M9 17.5h6M2 12v3M22 12v3" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            }
+          />
 
-          {/* Header */}
-          <div className="pt-8 pb-5 px-8 text-center border-b border-gray-800/40">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/15 to-blue-600/15 border border-cyan-500/20 text-cyan-400 mb-4 shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+          {/* Brand overlay */}
+          <div className="absolute top-8 left-8 z-10 pointer-events-none">
+            <div className="flex items-center gap-2 text-cyan-400">
               <ShieldIcon />
+              <span className="font-bold text-white text-lg tracking-tight">HackShield Nexus</span>
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">HackShield Nexus</h1>
-            <p className="text-gray-500 text-sm mt-1">Secure authentication terminal</p>
+            <p className="text-neutral-400 text-sm mt-3 max-w-[16rem] leading-relaxed">
+              Геймифицированная платформа для обучения кибербезопасности. Стань кибер-оперативником.
+            </p>
+          </div>
+
+          {/* Terminal tag */}
+          <div className="absolute bottom-6 left-8 z-10 text-[10px] font-mono text-gray-600 pointer-events-none space-y-0.5">
+            <p>HACKSHIELD NEXUS SECURE TERMINAL v3.0</p>
+            <p>ENCRYPTION: AES-256 GCM <span className="text-emerald-600">ACTIVE</span></p>
+          </div>
+        </div>
+
+        {/* ── Right: auth form ── */}
+        <div className="relative z-10 flex flex-col justify-center p-6 sm:p-10 overflow-y-auto bg-gradient-to-l from-black/60 via-black/30 to-transparent">
+
+          {/* Mobile brand */}
+          <div className="md:hidden flex items-center justify-center gap-2 text-cyan-400 mb-6">
+            <ShieldIcon />
+            <span className="font-bold text-white text-lg tracking-tight">HackShield Nexus</span>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-5">
+            <h2 className="text-2xl font-bold text-white tracking-tight">
+              {tab === 'login' ? 'Вход в систему' : showOtpInput ? 'Подтверждение почты' : 'Создание аккаунта'}
+            </h2>
+            <p className="text-gray-500 text-sm mt-1">
+              {tab === 'login'
+                ? 'Войдите, чтобы продолжить операцию'
+                : showOtpInput
+                  ? 'Введите код из письма'
+                  : 'Несколько шагов до доступа в Nexus'}
+            </p>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-gray-800/40">
+          <div className="flex border border-gray-800/60 rounded-xl p-1 bg-black/40 mb-5">
             {(['login', 'register'] as Tab[]).map(t => (
               <button
                 key={t}
                 onClick={() => switchTab(t)}
                 disabled={isLoading}
-                className={`flex-1 py-3.5 text-sm font-semibold transition-all relative
-                  ${tab === t ? 'text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all
+                  ${tab === t ? 'bg-gradient-to-r from-cyan-600/90 to-blue-600/90 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
               >
                 {t === 'login' ? 'Вход' : 'Регистрация'}
-                {tab === t && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500/0 via-cyan-500 to-cyan-500/0" />
-                )}
               </button>
             ))}
           </div>
 
-          <div className="p-8 space-y-5">
+          {/* Global error */}
+          {globalError && (
+            <div className="p-3.5 mb-4 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm flex items-start gap-2.5">
+              <span className="mt-0.5 shrink-0">⚠</span>
+              <span>{globalError}</span>
+            </div>
+          )}
 
-            {/* Global error */}
-            {globalError && (
-              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm flex items-start gap-2.5">
-                <span className="mt-0.5 shrink-0">⚠</span>
-                <span>{globalError}</span>
-              </div>
-            )}
+          {/* Success */}
+          {successMsg && (
+            <div className="p-3.5 mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-sm flex items-start gap-2.5">
+              <span className="mt-0.5 shrink-0">✓</span>
+              <span>{successMsg}</span>
+            </div>
+          )}
 
-            {/* Success */}
-            {successMsg && (
-              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-sm flex items-start gap-2.5">
-                <span className="mt-0.5 shrink-0">✓</span>
-                <span>{successMsg}</span>
-              </div>
-            )}
-
-            {/* ── LOGIN FORM ─────────────────────────────────── */}
-            {tab === 'login' && (
-              <form onSubmit={handleLogin} className="space-y-4" noValidate>
-                <Field
-                  label="Email"
-                  icon={<MailIcon />}
-                  id="login-email"
-                  type="email"
-                  autoComplete="email"
-                  value={loginEmail}
-                  onChange={e => { setLoginEmail(e.target.value); setLoginErrors(p => ({...p, email: ''})); }}
-                  placeholder="operator@hackshield.com"
-                  disabled={isLoading}
-                  error={loginErrors.email}
-                />
-                <Field
-                  label="Пароль"
-                  icon={<LockIcon />}
-                  id="login-password"
-                  type={showPass ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  value={loginPassword}
-                  onChange={e => { setLoginPassword(e.target.value); setLoginErrors(p => ({...p, password: ''})); }}
-                  placeholder="••••••••"
-                  disabled={isLoading}
-                  error={loginErrors.password}
-                  rightElement={
-                    <button type="button" onClick={() => setShowPass(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
-                      <EyeIcon open={showPass} />
-                    </button>
-                  }
-                />
-
-                <button type="submit" disabled={isLoading} className={`${primaryBtn} mt-2`}>
-                  {isLoading ? <><Spinner /><span>Вход...</span></> : <span>Войти в систему</span>}
-                </button>
-
-                <p className="text-center text-sm text-gray-600">
-                  Нет аккаунта?{' '}
-                  <button type="button" onClick={() => switchTab('register')} className="text-cyan-500 hover:text-cyan-400 transition-colors font-medium">
-                    Зарегистрироваться
+          {/* ── LOGIN FORM ─────────────────────────────────── */}
+          {tab === 'login' && (
+            <form onSubmit={handleLogin} className="space-y-4" noValidate>
+              <Field
+                label="Email"
+                icon={<MailIcon />}
+                id="login-email"
+                type="email"
+                autoComplete="email"
+                value={loginEmail}
+                onChange={e => { setLoginEmail(e.target.value); setLoginErrors(p => ({...p, email: ''})); }}
+                placeholder="operator@hackshield.com"
+                disabled={isLoading}
+                error={loginErrors.email}
+              />
+              <Field
+                label="Пароль"
+                icon={<LockIcon />}
+                id="login-password"
+                type={showPass ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={loginPassword}
+                onChange={e => { setLoginPassword(e.target.value); setLoginErrors(p => ({...p, password: ''})); }}
+                placeholder="••••••••"
+                disabled={isLoading}
+                error={loginErrors.password}
+                rightElement={
+                  <button type="button" onClick={() => setShowPass(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
+                    <EyeIcon open={showPass} />
                   </button>
-                </p>
-              </form>
-            )}
+                }
+              />
 
-            {/* ── REGISTER WIZARD ────────────────────────────── */}
-            {tab === 'register' && !successMsg && !showOtpInput && (
-              <div className="space-y-5">
-                {/* Step progress */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-cyan-400 font-semibold uppercase tracking-widest">
-                      Шаг {stepIndex + 1} из {REG_STEPS.length}
-                    </span>
-                    <span className="text-gray-600">{STEP_TITLES[regStep]}</span>
-                  </div>
-                  <div className="flex gap-1.5">
-                    {REG_STEPS.map((s, i) => (
-                      <div key={s} className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                        i <= stepIndex ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : 'bg-gray-700/70'
-                      }`} />
-                    ))}
-                  </div>
+              <button type="submit" disabled={isLoading} className={`${primaryBtn} mt-2`}>
+                {isLoading ? <><Spinner /><span>Вход...</span></> : <span>Войти в систему</span>}
+              </button>
+
+              <p className="text-center text-sm text-gray-600">
+                Нет аккаунта?{' '}
+                <button type="button" onClick={() => switchTab('register')} className="text-cyan-500 hover:text-cyan-400 transition-colors font-medium">
+                  Зарегистрироваться
+                </button>
+              </p>
+            </form>
+          )}
+
+          {/* ── REGISTER WIZARD ────────────────────────────── */}
+          {tab === 'register' && !successMsg && !showOtpInput && (
+            <div className="space-y-5">
+              {/* Step progress */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-cyan-400 font-semibold uppercase tracking-widest">
+                    Шаг {stepIndex + 1} из {REG_STEPS.length}
+                  </span>
+                  <span className="text-gray-600">{STEP_TITLES[regStep]}</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {REG_STEPS.map((s, i) => (
+                    <div key={s} className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                      i <= stepIndex ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : 'bg-gray-700/70'
+                    }`} />
+                  ))}
+                </div>
+              </div>
+
+              <form onSubmit={goNext} className="space-y-4" noValidate>
+                <div>
+                  <h3 className="text-white font-semibold text-lg">{STEP_TITLES[regStep]}</h3>
+                  <p className="text-gray-500 text-xs mt-0.5">{STEP_HINTS[regStep]}</p>
                 </div>
 
-                <form onSubmit={goNext} className="space-y-4" noValidate>
-                  <div>
-                    <h3 className="text-white font-semibold text-lg">{STEP_TITLES[regStep]}</h3>
-                    <p className="text-gray-500 text-xs mt-0.5">{STEP_HINTS[regStep]}</p>
-                  </div>
+                {/* Step: username */}
+                {regStep === 'username' && (
+                  <Field
+                    ref={stepInputRef}
+                    label="Никнейм"
+                    icon={<UserIcon />}
+                    id="reg-username"
+                    type="text"
+                    autoComplete="username"
+                    value={regUsername}
+                    onChange={e => { setRegUsername(e.target.value); setRegErrors(p => ({...p, username: ''})); }}
+                    placeholder="cipher_x"
+                    disabled={isLoading}
+                    error={regErrors.username}
+                  />
+                )}
 
-                  {/* Step: username */}
-                  {regStep === 'username' && (
+                {/* Step: full name */}
+                {regStep === 'fullName' && (
+                  <Field
+                    ref={stepInputRef}
+                    label="Имя"
+                    icon={<IdIcon />}
+                    id="reg-fullname"
+                    type="text"
+                    autoComplete="name"
+                    value={regFullName}
+                    onChange={e => { setRegFullName(e.target.value); setRegErrors(p => ({...p, fullName: ''})); }}
+                    placeholder="Alex Cipher"
+                    disabled={isLoading}
+                    error={regErrors.fullName}
+                  />
+                )}
+
+                {/* Step: email */}
+                {regStep === 'email' && (
+                  <Field
+                    ref={stepInputRef}
+                    label="Email"
+                    icon={<MailIcon />}
+                    id="reg-email"
+                    type="email"
+                    autoComplete="email"
+                    value={regEmail}
+                    onChange={e => { setRegEmail(e.target.value); setRegErrors(p => ({...p, email: ''})); }}
+                    placeholder="operator@hackshield.com"
+                    disabled={isLoading}
+                    error={regErrors.email}
+                  />
+                )}
+
+                {/* Step: password */}
+                {regStep === 'password' && (
+                  <>
                     <Field
                       ref={stepInputRef}
-                      label="Никнейм"
-                      icon={<UserIcon />}
-                      id="reg-username"
-                      type="text"
-                      autoComplete="username"
-                      value={regUsername}
-                      onChange={e => { setRegUsername(e.target.value); setRegErrors(p => ({...p, username: ''})); }}
-                      placeholder="cipher_x"
+                      label="Пароль"
+                      icon={<LockIcon />}
+                      id="reg-password"
+                      type={showPass ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={regPassword}
+                      onChange={e => { setRegPassword(e.target.value); setRegErrors(p => ({...p, password: ''})); }}
+                      placeholder="Минимум 6 символов"
                       disabled={isLoading}
-                      error={regErrors.username}
+                      error={regErrors.password}
+                      rightElement={
+                        <button type="button" onClick={() => setShowPass(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
+                          <EyeIcon open={showPass} />
+                        </button>
+                      }
                     />
-                  )}
-
-                  {/* Step: full name */}
-                  {regStep === 'fullName' && (
                     <Field
-                      ref={stepInputRef}
-                      label="Имя"
-                      icon={<IdIcon />}
-                      id="reg-fullname"
-                      type="text"
-                      autoComplete="name"
-                      value={regFullName}
-                      onChange={e => { setRegFullName(e.target.value); setRegErrors(p => ({...p, fullName: ''})); }}
-                      placeholder="Alex Cipher"
+                      label="Подтверждение пароля"
+                      icon={<LockIcon />}
+                      id="reg-confirm"
+                      type={showConfirm ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={regConfirm}
+                      onChange={e => { setRegConfirm(e.target.value); setRegErrors(p => ({...p, confirm: ''})); }}
+                      placeholder="Повторите пароль"
                       disabled={isLoading}
-                      error={regErrors.fullName}
+                      error={regErrors.confirm}
+                      rightElement={
+                        <button type="button" onClick={() => setShowConfirm(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
+                          <EyeIcon open={showConfirm} />
+                        </button>
+                      }
                     />
-                  )}
-
-                  {/* Step: email */}
-                  {regStep === 'email' && (
-                    <Field
-                      ref={stepInputRef}
-                      label="Email"
-                      icon={<MailIcon />}
-                      id="reg-email"
-                      type="email"
-                      autoComplete="email"
-                      value={regEmail}
-                      onChange={e => { setRegEmail(e.target.value); setRegErrors(p => ({...p, email: ''})); }}
-                      placeholder="operator@hackshield.com"
-                      disabled={isLoading}
-                      error={regErrors.email}
-                    />
-                  )}
-
-                  {/* Step: password */}
-                  {regStep === 'password' && (
-                    <>
-                      <Field
-                        ref={stepInputRef}
-                        label="Пароль"
-                        icon={<LockIcon />}
-                        id="reg-password"
-                        type={showPass ? 'text' : 'password'}
-                        autoComplete="new-password"
-                        value={regPassword}
-                        onChange={e => { setRegPassword(e.target.value); setRegErrors(p => ({...p, password: ''})); }}
-                        placeholder="Минимум 6 символов"
-                        disabled={isLoading}
-                        error={regErrors.password}
-                        rightElement={
-                          <button type="button" onClick={() => setShowPass(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
-                            <EyeIcon open={showPass} />
-                          </button>
-                        }
-                      />
-                      <Field
-                        label="Подтверждение пароля"
-                        icon={<LockIcon />}
-                        id="reg-confirm"
-                        type={showConfirm ? 'text' : 'password'}
-                        autoComplete="new-password"
-                        value={regConfirm}
-                        onChange={e => { setRegConfirm(e.target.value); setRegErrors(p => ({...p, confirm: ''})); }}
-                        placeholder="Повторите пароль"
-                        disabled={isLoading}
-                        error={regErrors.confirm}
-                        rightElement={
-                          <button type="button" onClick={() => setShowConfirm(p => !p)} className="text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
-                            <EyeIcon open={showConfirm} />
-                          </button>
-                        }
-                      />
-                      {regPassword && (
-                        <div className="space-y-1">
-                          <div className="flex gap-1">
-                            {[1,2,3,4].map(i => (
-                              <div key={i} className={`h-1 flex-1 rounded-full transition-all ${
-                                regPassword.length >= i * 3
-                                  ? i <= 1 ? 'bg-red-500' : i <= 2 ? 'bg-yellow-500' : i <= 3 ? 'bg-blue-500' : 'bg-emerald-500'
-                                  : 'bg-gray-700'
-                              }`} />
-                            ))}
-                          </div>
-                          <p className="text-xs text-gray-600">
-                            {regPassword.length < 6 ? 'Слишком короткий' : regPassword.length < 9 ? 'Слабый' : regPassword.length < 12 ? 'Средний' : 'Надёжный'}
-                          </p>
+                    {regPassword && (
+                      <div className="space-y-1">
+                        <div className="flex gap-1">
+                          {[1,2,3,4].map(i => (
+                            <div key={i} className={`h-1 flex-1 rounded-full transition-all ${
+                              regPassword.length >= i * 3
+                                ? i <= 1 ? 'bg-red-500' : i <= 2 ? 'bg-yellow-500' : i <= 3 ? 'bg-blue-500' : 'bg-emerald-500'
+                                : 'bg-gray-700'
+                            }`} />
+                          ))}
                         </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* Navigation buttons */}
-                  <div className="flex gap-3 pt-1">
-                    {stepIndex > 0 && (
-                      <button
-                        type="button"
-                        onClick={goBack}
-                        disabled={isLoading}
-                        className="px-5 py-3.5 rounded-xl border border-gray-700/80 text-gray-300 hover:text-white hover:border-gray-600 transition-all text-sm font-semibold disabled:opacity-50"
-                      >
-                        ← Назад
-                      </button>
+                        <p className="text-xs text-gray-600">
+                          {regPassword.length < 6 ? 'Слишком короткий' : regPassword.length < 9 ? 'Слабый' : regPassword.length < 12 ? 'Средний' : 'Надёжный'}
+                        </p>
+                      </div>
                     )}
-                    <button type="submit" disabled={isLoading} className={primaryBtn}>
-                      {isLoading
-                        ? <><Spinner /><span>Создание...</span></>
-                        : <span>{stepIndex < REG_STEPS.length - 1 ? 'Далее →' : 'Создать аккаунт'}</span>}
-                    </button>
-                  </div>
-                </form>
+                  </>
+                )}
 
-                <p className="text-center text-sm text-gray-600">
-                  Уже есть аккаунт?{' '}
-                  <button type="button" onClick={() => switchTab('login')} className="text-cyan-500 hover:text-cyan-400 transition-colors font-medium">
-                    Войти
-                  </button>
-                </p>
-              </div>
-            )}
-
-            {/* ── OTP VERIFICATION ──────────────────────────── */}
-            {tab === 'register' && showOtpInput && (
-              <form onSubmit={handleVerifyOtp} className="space-y-5" noValidate>
-                <div className="text-center space-y-2">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-cyan-500/10 text-cyan-400 text-xl mb-1">
-                    📧
-                  </div>
-                  <h3 className="text-white font-semibold text-base">Подтверждение почты</h3>
-                  <p className="text-gray-400 text-xs leading-relaxed max-w-xs mx-auto">
-                    Код подтверждения отправлен на <span className="text-cyan-400 font-medium">{regEmail}</span>.<br />
-                    Введите его ниже для активации аккаунта.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest text-center">
-                    6-значный код
-                  </label>
-                  <div className="relative max-w-[200px] mx-auto">
-                    <input
-                      type="text"
-                      maxLength={6}
-                      pattern="[0-9]*"
-                      inputMode="numeric"
-                      autoFocus
-                      value={otpToken}
-                      onChange={e => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
-                        setOtpToken(val);
-                        setOtpError('');
-                      }}
-                      placeholder="000000"
+                {/* Navigation buttons */}
+                <div className="flex gap-3 pt-1">
+                  {stepIndex > 0 && (
+                    <button
+                      type="button"
+                      onClick={goBack}
                       disabled={isLoading}
-                      className={`w-full text-center py-3 bg-[#0d1421] border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/60 transition-all text-xl tracking-[0.5em] font-mono
-                        ${otpError ? 'border-red-500/60' : 'border-gray-700/80 hover:border-gray-600'}`}
-                    />
-                  </div>
-                  {otpError && <p className="text-xs text-red-400 text-center">{otpError}</p>}
-                </div>
-
-                <button type="submit" disabled={isLoading} className={`${primaryBtn} mt-2`}>
-                  {isLoading ? <><Spinner /><span>Проверка...</span></> : <span>Подтвердить код</span>}
-                </button>
-
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowOtpInput(false);
-                      setSuccessMsg('');
-                      setOtpToken('');
-                      setOtpError('');
-                      setRegStep('password');
-                    }}
-                    className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
-                  >
-                    ← Вернуться к регистрации
+                      className="px-5 py-3.5 rounded-xl border border-gray-700/80 text-gray-300 hover:text-white hover:border-gray-600 transition-all text-sm font-semibold disabled:opacity-50"
+                    >
+                      ← Назад
+                    </button>
+                  )}
+                  <button type="submit" disabled={isLoading} className={primaryBtn}>
+                    {isLoading
+                      ? <><Spinner /><span>Создание...</span></>
+                      : <span>{stepIndex < REG_STEPS.length - 1 ? 'Далее →' : 'Создать аккаунт'}</span>}
                   </button>
                 </div>
               </form>
-            )}
-          </div>
 
-          {/* Footer bar */}
-          <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
-        </div>
+              <p className="text-center text-sm text-gray-600">
+                Уже есть аккаунт?{' '}
+                <button type="button" onClick={() => switchTab('login')} className="text-cyan-500 hover:text-cyan-400 transition-colors font-medium">
+                  Войти
+                </button>
+              </p>
+            </div>
+          )}
 
-        {/* Terminal tag */}
-        <div className="mt-5 text-center text-xs font-mono text-gray-700 space-y-0.5">
-          <p>HACKSHIELD NEXUS SECURE TERMINAL v3.0</p>
-          <p>ENCRYPTION: AES-256 GCM <span className="text-emerald-700">ACTIVE</span></p>
+          {/* ── OTP VERIFICATION ──────────────────────────── */}
+          {tab === 'register' && showOtpInput && (
+            <form onSubmit={handleVerifyOtp} className="space-y-5" noValidate>
+              <div className="text-center space-y-2">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-cyan-500/10 text-cyan-400 text-xl mb-1">
+                  📧
+                </div>
+                <p className="text-gray-400 text-xs leading-relaxed max-w-xs mx-auto">
+                  Код подтверждения отправлен на <span className="text-cyan-400 font-medium">{regEmail}</span>.<br />
+                  Введите его ниже для активации аккаунта.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest text-center">
+                  6-значный код
+                </label>
+                <div className="relative max-w-[200px] mx-auto">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    autoFocus
+                    value={otpToken}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setOtpToken(val);
+                      setOtpError('');
+                    }}
+                    placeholder="000000"
+                    disabled={isLoading}
+                    className={`w-full text-center py-3 bg-[#0d1421]/80 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/60 transition-all text-xl tracking-[0.5em] font-mono
+                      ${otpError ? 'border-red-500/60' : 'border-gray-700/80 hover:border-gray-600'}`}
+                  />
+                </div>
+                {otpError && <p className="text-xs text-red-400 text-center">{otpError}</p>}
+              </div>
+
+              <button type="submit" disabled={isLoading} className={`${primaryBtn} mt-2`}>
+                {isLoading ? <><Spinner /><span>Проверка...</span></> : <span>Подтвердить код</span>}
+              </button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOtpInput(false);
+                    setSuccessMsg('');
+                    setOtpToken('');
+                    setOtpError('');
+                    setRegStep('password');
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+                >
+                  ← Вернуться к регистрации
+                </button>
+              </div>
+            </form>
+          )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
