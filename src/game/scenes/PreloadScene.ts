@@ -10,7 +10,7 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     create() {
-        this.scene.start('MissionScene');
+        this.scene.start('MissionScene', { gameState: this.registry.get('gameState') });
     }
 
     generateAssets() {
