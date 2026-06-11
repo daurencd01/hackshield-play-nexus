@@ -1,7 +1,7 @@
 # Terminal Hacking (Hack Challenge)
 
 > **Status**: Implemented
-> **Author**: Game Studios workflow (game-designer)
+> **Author**: daurencd01
 > **Implements Pillar**: "Learn real cybersecurity by doing"
 
 ## Summary
