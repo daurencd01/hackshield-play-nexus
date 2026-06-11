@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Users, MessageCircle, UserPlus, Search, RefreshCw } from 'lucide-react';
 import { Layout } from '@/components/Layout';
@@ -17,54 +18,52 @@ type Tab = 'global' | 'friends' | 'chats' | 'requests';
 export default function ArenaPage() {
   const { user } = useUser();
   const [tab, setTab] = useState<Tab>('global');
-  const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [myRank, setMyRank] = useState<LeaderboardEntry | null>(null);
-  const [requests, setRequests] = useState<FriendRequest[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [top, mine, incomingReqs] = await Promise.all([
-        leaderboardService.getTop(50),
-        user ? leaderboardService.getMyRank(user.id) : Promise.resolve(null),
-        user ? friendsService.getIncomingRequests() : Promise.resolve([])
-      ]);
+  // Leaderboard — cached; keeps previous data on refetch so the rating never flashes empty.
+  const leaderboardQ = useQuery({
+    queryKey: ['leaderboard', 'top'],
+    queryFn: () => leaderboardService.getTop(50),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+  });
+  const myRankQ = useQuery({
+    queryKey: ['leaderboard', 'myRank', user?.id],
+    queryFn: () => (user ? leaderboardService.getMyRank(user.id) : Promise.resolve(null)),
+    enabled: !!user,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const requestsQ = useQuery({
+    queryKey: ['friendRequests', user?.id],
+    queryFn: () => (user ? friendsService.getIncomingRequests() : Promise.resolve([])),
+    enabled: !!user,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
 
-      setGlobalLeaderboard(top);
-      setMyRank(mine);
-      setRequests(incomingReqs);
-    } catch (e) {
-      console.error('Failed to load arena data', e);
-    } finally {
-      setLoading(false);
-    }
+  const globalLeaderboard: LeaderboardEntry[] = leaderboardQ.data ?? [];
+  const myRank: LeaderboardEntry | null = myRankQ.data ?? null;
+  const requests: FriendRequest[] = requestsQ.data ?? [];
+  const loading = leaderboardQ.isLoading;
+
+  const loadData = () => {
+    leaderboardQ.refetch();
+    myRankQ.refetch();
+    requestsQ.refetch();
   };
 
+  // Realtime: invalidate via refetch (React Query dedupes rapid calls).
   useEffect(() => {
-    loadData();
-
-    const unsub = leaderboardService.subscribeToTopChanges((updated) => {
-      setGlobalLeaderboard(prev => {
-        const map = new Map(prev.map(e => [e.id, e]));
-        updated.forEach(u => map.set(u.id, u));
-        return Array.from(map.values()).sort((a, b) => b.xp - a.xp);
-      });
-    });
-
+    const unsub = leaderboardService.subscribeToTopChanges(() => { leaderboardQ.refetch(); });
     let unsubReqs: (() => void) | null = null;
     if (user) {
-      unsubReqs = friendsService.subscribeToRequests(user.id, () => {
-        friendsService.getIncomingRequests().then(setRequests);
-      });
+      unsubReqs = friendsService.subscribeToRequests(user.id, () => { requestsQ.refetch(); });
     }
-
-    return () => {
-      unsub();
-      unsubReqs?.();
-    };
-  }, [user]);
+    return () => { unsub(); unsubReqs?.(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const top3 = globalLeaderboard.slice(0, 3);
   const rest = globalLeaderboard.slice(3);

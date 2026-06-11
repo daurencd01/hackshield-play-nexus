@@ -30,7 +30,16 @@ const LoadingScreen = () => (
 );
 
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,          // data stays fresh 1 min — fewer refetches
+      gcTime: 30 * 60_000,
+      refetchOnWindowFocus: false, // don't refetch every time the tab regains focus
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
