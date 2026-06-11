@@ -4,6 +4,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Spinner used as fallback while the Spline 3D scene loads (SplineScene) */
+.loader {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 255, 136, 0.25);
+  border-top-color: #00ff88;
+  border-radius: 50%;
+  animation: loader-spin 0.8s linear infinite;
+}
+@keyframes loader-spin {
+  to { transform: rotate(360deg); }
+}
+
 @layer base {
   :root {
     --background: 230 25% 7%;
