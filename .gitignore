@@ -1,3 +1,6 @@
+# MCP (contains API keys — keep local only)
+.mcp.json
+
 # Python
 __pycache__/
 *.pyc
