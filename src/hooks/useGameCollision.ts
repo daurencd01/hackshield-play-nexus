@@ -32,7 +32,14 @@ export function useGameCollision() {
               return { type: 'terminal', target: t };
           }
       }
-      
+
+      // Check Camera (disable it by getting close + pressing E)
+      for (const cam of gs.cameras) {
+          if (cam.state === 'active' && dist(player.position, cam.position) < 40) {
+              return { type: 'camera', target: cam };
+          }
+      }
+
       // Check Collectibles
       for (let i = gs.collectibles.length - 1; i >= 0; i--) {
           const c = gs.collectibles[i];

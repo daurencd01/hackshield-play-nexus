@@ -19,6 +19,7 @@ import { HackChallenge } from './game/HackChallenge';
 import { TouchControls } from './game/TouchControls';
 import { challengeForTerminal } from '@/game/hackChallenges';
 import { dataService } from '@/lib/dataService';
+import { sfx } from '@/game/sound';
 
 const log = createLogger('GameScene');
 
@@ -62,6 +63,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
     );
 
     const room = useMemo(() => generateRoom(roomId), [roomId]);
+    useEffect(() => () => sfx.stopAlarm(), []);
     const keys = useRef<Record<string, boolean>>({});
     const touchRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     
@@ -79,6 +81,12 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
 
     // Initialize Room
     useEffect(() => {
+        // Per-room objectives (the special task rotates by room).
+        ObjectiveSystem.getInstance().init(userId, missionId, {
+            roomId,
+            cameras: room.cameras.length,
+            intel: room.collectibles.filter(c => c.type === 'intel').length,
+        });
         const spawn = room.spawnPoints[mode === 'solo' ? 0 : (isHost ? 1 : 2)];
         
         const localPlayer: Player = {
@@ -161,6 +169,23 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
         const player = gs.players.get(userId);
         if (!player) return;
 
+        // Extraction zone (real room exit point)
+        const ex = room.exitPoint;
+        if ((player.position.x - ex.x) ** 2 + (player.position.y - ex.y) ** 2 < 55 * 55) {
+            if (ObjectiveSystem.getInstance().canExtract()) {
+                ObjectiveSystem.getInstance().completeObjective('escape');
+                sfx.stopAlarm();
+                sfx.success();
+                broadcastEvent({ type: 'mission_complete' });
+                updateGameState({ missionStatus: 'success' });
+            } else {
+                const pending = ObjectiveSystem.getInstance().pendingLabel();
+                flashMsg(pending ? `Сначала: ${pending}` : 'Выполни задачи миссии');
+                sfx.deny();
+            }
+            return;
+        }
+
         const interaction = checkInteraction(gs, player);
         if (!interaction) return;
 
@@ -172,14 +197,15 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                 }
                 updateGameState({ showQuiz: true, activeHackTarget: interaction.target.id });
                 break;
-            case 'exit': {
-                const mainHacked = gs.terminals.some(t => t.isMainObjective && t.isHacked);
-                if (!mainHacked) {
-                    flashMsg('Сначала отключите целевой терминал ★ (C2)');
-                    break;
-                }
-                broadcastEvent({ type: 'mission_complete' });
-                updateGameState({ missionStatus: 'success' });
+            case 'camera': {
+                const camId = interaction.target.id;
+                updateGameState(prev => ({
+                    ...prev,
+                    cameras: prev.cameras.map(c => c.id === camId ? { ...c, state: 'hacked' as const, hackedUntil: Date.now() + 9_999_999 } : c),
+                }));
+                sfx.hack();
+                const done = ObjectiveSystem.getInstance().incrementProgress('cameras');
+                flashMsg(done ? 'Все камеры отключены ✓' : 'Камера отключена');
                 break;
             }
         }
@@ -202,13 +228,16 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                 activeHackTarget: null,
             }));
             dataService.addXp(xp);
+            sfx.hack();
             if (target?.isMainObjective) {
-                flashMsg('★ C2 ОТКЛЮЧЁН! Уходите через EXIT →', 4000);
+                ObjectiveSystem.getInstance().completeObjective('terminal');
+                flashMsg('★ C2 ОТКЛЮЧЁН! Выполни задачи и уходи через EXIT →', 4000);
             } else {
                 flashMsg(`+${xp} XP · Терминал взломан`);
             }
         } else {
             AlertSystem.getInstance().increaseAlert(20);
+            sfx.deny();
             updateGameState({ showQuiz: false, activeHackTarget: null });
             flashMsg('ДОСТУП ОТКЛОНЁН — тревога повышена!', 2000);
         }
@@ -247,11 +276,15 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
             const hp = gs.players.get(userId);
             let h: string | null = null;
             if (hp) {
+                const ex = room.exitPoint;
+                const nearExit = (hp.position.x - ex.x) ** 2 + (hp.position.y - ex.y) ** 2 < 55 * 55;
                 const it = checkInteraction(gs, hp);
-                if (it?.type === 'terminal') {
+                if (nearExit) {
+                    h = ObjectiveSystem.getInstance().canExtract() ? 'Экстракция — [E]' : 'Сначала выполни задачи';
+                } else if (it?.type === 'terminal') {
                     h = it.target.isHacked ? null : (it.target.isMainObjective ? '★ Взломать C2 — [E]' : 'Взломать терминал — [E]');
-                } else if (it?.type === 'exit') {
-                    h = gs.terminals.some(t => t.isMainObjective && t.isHacked) ? 'Экстракция — [E]' : null;
+                } else if (it?.type === 'camera') {
+                    h = 'Отключить камеру — [E]';
                 }
             }
             if (h !== hintRef.current) { hintRef.current = h; setHint(h); }
@@ -292,7 +325,11 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                     const ddy = lp.position.y - c.position.y;
                     if (ddx * ddx + ddy * ddy < 26 * 26) {
                         if (c.type === 'data') { dataService.addXp(25); flashMsg('+25 XP · Data shard'); }
-                        else if (c.type === 'intel') { dataService.addXp(40); ObjectiveSystem.getInstance().completeObjective('intel'); flashMsg('+40 XP · Intel получен'); }
+                        else if (c.type === 'intel') {
+                            dataService.addXp(40);
+                            const done = ObjectiveSystem.getInstance().incrementProgress('intel');
+                            flashMsg(done ? 'Все улики собраны ✓' : '+40 XP · Улика собрана');
+                        }
                         else if (c.type === 'medkit') { lp.health = Math.min(lp.maxHealth, lp.health + 30); flashMsg('+30 HP · Аптечка'); }
                         else if (c.type === 'emp') { lp.empCharges += 1; flashMsg('+1 ЭМИ-заряд'); }
                         else if (typeof c.type === 'string' && c.type.startsWith('keycard')) {
@@ -300,6 +337,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                             if (!lp.keycards.includes(col)) lp.keycards.push(col);
                             flashMsg('Ключ-карта: ' + col);
                         }
+                        sfx.pickup();
                         updateGameState(prev => ({ ...prev, collectibles: (prev.collectibles as any[]).filter(x => x.id !== c.id) }));
                         break;
                     }
@@ -311,8 +349,15 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
             const isHidden = localPlayer?.isStealthMode || localPlayer?.isInVent || false;
             const isJammerActive = InventorySystem.getInstance().isEffectActive('jammer');
             const alertStage = AlertSystem.getInstance().update(dt, isHidden, isJammerActive);
+            const alertLevel = AlertSystem.getInstance().getAlertLevel();
+            // Siren while alert is high
+            if (alertLevel > 55) sfx.startAlarm(); else sfx.stopAlarm();
+            // "Ghost" objective fails if the alarm gets loud
+            if (alertLevel > 70) ObjectiveSystem.getInstance().failObjective('noalarm');
             if (alertStage === 'MISSION FAILED') {
-                updateGameState({ missionStatus: 'failed', message: 'Maximum alert level reached. Extraction impossible.' });
+                sfx.stopAlarm();
+                sfx.fail();
+                updateGameState({ missionStatus: 'failed', message: 'Тревога достигла максимума. Эвакуация невозможна.' });
             }
 
             // 3. Exfiltration Update
@@ -366,7 +411,7 @@ const GameScene: React.FC<GameSceneProps> = ({ userId, username, sessionId, room
                         </ul>
                         <p className="text-[11px] text-gray-500 font-mono mb-5">Управление: WASD — движение · E — взлом · Shift — тихий шаг · F3 — отладка</p>
                         <button
-                            onClick={() => setShowBriefing(false)}
+                            onClick={() => { sfx.init(); setShowBriefing(false); }}
                             className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl transition-all"
                         >
                             НАЧАТЬ ОПЕРАЦИЮ →
