@@ -14,10 +14,11 @@ export function useProfileManager() {
   const loadProfile = useCallback(async () => {
     setPhase("loading");
 
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-    if (authError || !authUser) { 
-      navigate("/auth"); 
-      return; 
+    const { data: { session } } = await supabase.auth.getSession();
+    const authUser = session?.user;
+    if (!authUser) {
+      navigate("/auth");
+      return;
     }
 
     let { data, error } = await (supabase

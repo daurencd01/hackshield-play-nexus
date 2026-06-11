@@ -52,12 +52,12 @@ export const leaderboardService = {
           .from('leaderboard_live')
           .select('*')
           .eq('id', userId)
-          .single(),
+          .maybeSingle(),
         TIMEOUT_MS
       );
 
       if (error) throw error;
-      return LeaderboardEntrySchema.parse(data);
+      return data ? LeaderboardEntrySchema.parse(data) : null;
     } catch (e) {
       console.warn('[Leaderboard] My rank failed:', e);
       return null;
