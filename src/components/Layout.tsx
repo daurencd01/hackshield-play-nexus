@@ -16,13 +16,15 @@ export function Layout({ children, title, showBack, hideNav }: Props) {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      {/* Mobile header */}
-      <MobileHeader title={title} showBack={showBack} />
+      {/* Mobile header (hidden in immersive/game mode) */}
+      {!hideNav && <MobileHeader title={title} showBack={showBack} />}
 
       {/* Desktop header */}
-      <div className="hidden md:block">
-        <GameHeader />
-      </div>
+      {!hideNav && (
+        <div className="hidden md:block">
+          <GameHeader />
+        </div>
+      )}
 
       {/* Main content with padding for mobile nav */}
       <main
