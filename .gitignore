@@ -36,3 +36,6 @@ dist-ssr
 
 # Claude Code local config (not part of the project)
 .claude/
+
+# Supabase CLI local state
+supabase/.temp/
